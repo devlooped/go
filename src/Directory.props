@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <Product>go</Product>
+    <ImplicitUsings>true</ImplicitUsings>
+  </PropertyGroup>
+</Project>

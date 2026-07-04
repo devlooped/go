@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/go/go.csproj" />
+  <Project Path="src/Tests/Tests.csproj" />
+</Solution>
