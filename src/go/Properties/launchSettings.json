@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "go": {
+      "commandName": "Project",
+      "commandLineArgs": "-?"
+    }
+  }
+}
