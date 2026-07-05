@@ -8,27 +8,24 @@
     <RootNamespace>Devlooped</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
-    <Description>A dotnet global tool.</Description>
+    <Description>A dotnet global tool that locates the dotnet executable.</Description>
     <PackageId>go</PackageId>
     <PackAsTool>true</PackAsTool>
-    <PackBuildOutput>false</PackBuildOutput>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <PackageTags>dotnet dotnet-tool</PackageTags>
     <PackageProjectUrl>https://github.com/devlooped/go</PackageProjectUrl>
 
-    <!-- Allow running on whatever latest version users have. See https://docs.microsoft.com/en-us/dotnet/core/versions/selection#framework-dependent-apps-roll-forward -->
-    <!-- Useful for RID=any -->
-    <RollForward>LatestMajor</RollForward>
-    <RuntimeIdentifiers>win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64;any</RuntimeIdentifiers>
-
-    <PublishAot>true</PublishAot>
-    <StripSymbols>true</StripSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'any'">
-    <PublishAot>false</PublishAot>
+    <RuntimeIdentifier Condition="$(BuildingInsideVisualStudio) == 'true'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>
+      linux-x64;
+      linux-arm64;
+      osx-arm64;
+      osx-x64;
+      win-x64;
+      win-arm64
+    </RuntimeIdentifiers>
+    <PublishSelfContained>false</PublishSelfContained>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,7 +33,7 @@
     <None Include="Properties\*.*" />
   </ItemGroup>
 
-  <Target Name="RenderHelp" AfterTargets="Build" Condition="$(NoHelp) != 'true' and $(DesignTimeBuild) != 'true' and '$(PublishAot)' != 'true' and '$(RuntimeIdentifier)' == ''">
+  <Target Name="RenderHelp" AfterTargets="Build" Condition="$(NoHelp) != 'true' and $(DesignTimeBuild) != 'true' and '$(RuntimeIdentifier)' == ''">
     <WriteLinesToFile Lines="```shell" Overwrite="true" Encoding="UTF-8" File="$(MSBuildProjectDirectory)\help.md" />
     <Exec Command="dotnet &quot;$(TargetPath)&quot; --help &gt;&gt; &quot;$(MSBuildProjectDirectory)\help.md&quot;" StdOutEncoding="UTF-8" EnvironmentVariables="NO_COLOR=true" />
     <WriteLinesToFile Lines="```" Overwrite="false" Encoding="UTF-8" File="$(MSBuildProjectDirectory)\help.md" />
