@@ -1,10 +1,21 @@
 <Project>
 
+  <!-- Fixed to write *evaluated* full paths (not literal MSBuild %(...) expressions)
+       so that BuildManager.IsUpToDate can short-circuit unchanged re-runs by comparing
+       real mtimes of all input .cs files (entry + #:include + direct #:ref sources) vs the produced app.exe. -->
   <Target Name="AppendGoInput" AfterTargets="CoreCompile">
-    <Message Importance="high" Text="⚙️ %(Compile.FullPath)" />
-    <WriteLinesToFile Lines="input = %(Compile.FullPath.Replace('\', '/'))"
-                      Condition="!$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').StartsWith('$(IntermediateOutputPath)'))"
-                      File="$(GoConfig)" Overwrite="false" />
+    <ItemGroup>
+      <_GoCompile Include="@(Compile)" Condition="!$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').StartsWith('$(IntermediateOutputPath)'))">
+        <_InputPath>$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').Replace('\', '/'))</_InputPath>
+      </_GoCompile>
+    </ItemGroup>
+    <Message Importance="high" Text="⚙️ %(_GoCompile.FullPath)" />
+    <!-- Use pre-computed _InputPath metadata so the value is evaluated and batching writes real paths -->
+    <WriteLinesToFile
+      File="$(GoConfig)"
+      Overwrite="false"
+      Lines="input = %(_GoCompile._InputPath)"
+      Condition="'%(_GoCompile._InputPath)' != ''" />
   </Target>
 
   <Target Name="AppendGoApp" AfterTargets="Publish">
