@@ -12,7 +12,7 @@ public static class ProcessRunner
             ["CustomAfterMicrosoftCSharpTargets"] = targets,
         };
 
-        var arguments = new List<string> { "publish", cs };
+        var arguments = new List<string> { "publish", "--ucr", cs };
         if (publishArgs is not null)
             arguments.AddRange(publishArgs);
 
