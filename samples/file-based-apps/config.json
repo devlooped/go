@@ -1,0 +1,4 @@
+{
+  "app": "showcase",
+  "features": ["#:include", "#:ref", "#:package", "#:property"]
+}

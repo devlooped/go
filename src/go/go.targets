@@ -1,0 +1,19 @@
+<Project>
+
+  <Target Name="AppendGoInput" AfterTargets="CoreCompile">
+    <Message Importance="high" Text="⚙️ %(Compile.FullPath)" />
+    <WriteLinesToFile Lines="input = %(Compile.FullPath.Replace('\', '/'))"
+                      Condition="!$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').StartsWith('$(IntermediateOutputPath)'))"
+                      File="$(GoConfig)" Overwrite="false" />
+  </Target>
+
+  <Target Name="AppendGoApp" AfterTargets="Publish">
+    <PropertyGroup>
+      <PublishedApp>$([System.IO.Path]::Combine($(PublishDir), '$(AssemblyName)$(_NativeExecutableExtension)'))</PublishedApp>
+      <PublishedAppConfigPath>$([MSBuild]::NormalizePath('$(PublishedApp)').Replace('\', '/'))</PublishedAppConfigPath>
+    </PropertyGroup>
+    <WriteLinesToFile Lines="app = $(PublishedAppConfigPath)" File="$(GoConfig)" Overwrite="false" />
+    <Message Importance="high" Text="🔥 $([MSBuild]::NormalizePath('$(PublishedApp)'))" />
+  </Target>
+
+</Project>

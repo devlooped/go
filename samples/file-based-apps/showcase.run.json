@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "demo": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "LOG_LEVEL": "Debug"
+      }
+    }
+  }
+}
