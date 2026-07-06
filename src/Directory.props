@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Product>go c#</Product>
+    <Product>go#</Product>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 </Project>
