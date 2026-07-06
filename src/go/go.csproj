@@ -30,7 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ConsoleAppFramework" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="ConsoleAppFramework" Version="5.7.13" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
