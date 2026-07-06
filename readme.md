@@ -1,4 +1,4 @@
-# go
+# go#
 
 [![Version](https://img.shields.io/nuget/vpre/go.svg?color=royalblue)](https://www.nuget.org/packages/go)
 [![Downloads](https://img.shields.io/nuget/dt/go.svg?color=darkmagenta)](https://www.nuget.org/packages/go)
@@ -18,8 +18,54 @@ OSMF tier. A single fee covers all of [Devlooped packages](https://www.nuget.org
 
 <!-- https://github.com/devlooped/.github/raw/main/osmf.md -->
 <!-- #content -->
+
+## What is `go#`?
+
+`go#` (go sharp) lets you run `.cs` files directly, like scripts, while still getting the full power of the .NET SDK (dependencies, compilation, AOT, etc.).
+
+It shines for:
+- Quick one-off tools and prototypes
+- File-based apps without a `.csproj`
+- Fast iteration with smart caching (subsequent runs are near-instant when nothing changed)
+- Easy sharing of small utilities (just the `.cs` file)
+
 ## Usage
-*go*
+
+```console
+# Run a file
+dnx go app.cs
+
+# Pass arguments to your app
+dnx go app.cs -- arg1 arg2
+
+# Pass arguments to the underlying `dotnet publish`
+dnx go app.cs /p:PublishAot=true -- arg1 arg2
+```
+
+## Performance
+
+The main advantage of `go#` is **fast unchanged re-runs**. The numbers below compare the three common approaches on pristine sources.
+
+**PublishAot=false**
+
+| Example            | `dotnet run app.cs` | `go app.cs`  | `dotnet publish ...; app.exe` |
+|--------------------|---------------------|--------------|-------------------------------|
+| a) no includes     | 1.306s              | 0.264s       | 5.044s                        |
+| b) #include        | 1.169s              | 0.198s       | 4.857s                        |
+| c) #ref            | 4.605s              | 0.191s       | 6.243s                        |
+| d) #include + #ref | 13.079s             | 0.227s       | 7.320s                        |
+
+**PublishAot=true** (NativeAOT)
+
+| Example            | `dotnet run app.cs` | `go app.cs`  | `dotnet publish ...; app.exe` |
+|--------------------|---------------------|--------------|-------------------------------|
+| a) no includes     | —                   | 0.227s       | 12.436s                       |
+| b) #include        | —                   | 0.164s       | 11.145s                       |
+| c) #ref            | —                   | 0.183s       | 32.874s                       |
+| d) #include + #ref | —                   | 0.269s       | 21.888s                       |
+
+**Observation**: `go#` re-runs are fast (~0.16–0.27s) — just launching the cached executable when no changes are detected in any of the input files (including the `#include` and `#ref` dependencies).
+
 <!-- #content -->
 ---
 <!-- include https://github.com/devlooped/sponsors/raw/main/footer.md -->
