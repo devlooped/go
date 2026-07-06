@@ -5,17 +5,19 @@
        real mtimes of all input .cs files (entry + #:include + direct #:ref sources) vs the produced app.exe. -->
   <Target Name="AppendGoInput" AfterTargets="CoreCompile">
     <ItemGroup>
-      <_GoCompile Include="@(Compile)" Condition="!$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').StartsWith('$(IntermediateOutputPath)'))">
-        <_InputPath>$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').Replace('\', '/'))</_InputPath>
-      </_GoCompile>
+      <GoCompile Include="@(Compile)" Condition="!$([MSBuild]::ValueOrDefault('%(Compile.FullPath)', '').StartsWith('$(IntermediateOutputPath)'))">
+        <NormalizedPath>$([MSBuild]::NormalizePath('%(Compile.FullPath)').Replace('\', '/'))</NormalizedPath>
+      </GoCompile>
     </ItemGroup>
-    <Message Importance="high" Text="⚙️ %(_GoCompile.FullPath)" />
-    <!-- Use pre-computed _InputPath metadata so the value is evaluated and batching writes real paths -->
-    <WriteLinesToFile
-      File="$(GoConfig)"
-      Overwrite="false"
-      Lines="input = %(_GoCompile._InputPath)"
-      Condition="'%(_GoCompile._InputPath)' != ''" />
+    <Message Importance="high" Text="⚙️ %(GoCompile.NormalizedPath)" />
+    <WriteLinesToFile Lines="input=%(GoCompile.NormalizedPath)"
+                      File="$(GoConfig)" Overwrite="false"
+                      Condition="'%(GoCompile.NormalizedPath)' != ''" />
+  </Target>
+
+  <Target Name="AppendGoBin" AfterTargets="Build">
+    <WriteLinesToFile Lines="bin=$([MSBuild]::NormalizePath('$(TargetPath)').Replace('\', '/'))" File="$(GoConfig)" Overwrite="false" />
+    <Message Importance="high" Text="🔥 $([MSBuild]::NormalizePath('$(TargetPath)'))" />
   </Target>
 
   <Target Name="AppendGoApp" AfterTargets="Publish">
@@ -23,8 +25,8 @@
       <PublishedApp>$([System.IO.Path]::Combine($(PublishDir), '$(AssemblyName)$(_NativeExecutableExtension)'))</PublishedApp>
       <PublishedAppConfigPath>$([MSBuild]::NormalizePath('$(PublishedApp)').Replace('\', '/'))</PublishedAppConfigPath>
     </PropertyGroup>
-    <WriteLinesToFile Lines="app = $(PublishedAppConfigPath)" File="$(GoConfig)" Overwrite="false" />
-    <Message Importance="high" Text="🔥 $([MSBuild]::NormalizePath('$(PublishedApp)'))" />
+    <WriteLinesToFile Lines="app=$(PublishedAppConfigPath)" File="$(GoConfig)" Overwrite="false" />
+    <Message Importance="high" Text="🔥 $([MSBuild]::NormalizePath('$(PublishedApp)').Replace('\', '/'))" />
   </Target>
 
 </Project>

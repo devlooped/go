@@ -1,22 +1,44 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace Devlooped;
 
 public static class ProcessRunner
 {
-    public static Task<int> PublishAsync(string dotnet, string cs, string config, string targets, IReadOnlyList<string>? publishArgs = null)
+    public static Task<int> PublishAsync(string dotnet, string cs, string config, string targets, IReadOnlyList<string>? dotnetArgs = null)
     {
-        var environment = new Dictionary<string, string>
-        {
-            ["GoConfig"] = config,
-            ["CustomAfterMicrosoftCSharpTargets"] = targets,
-        };
+        var environment = CreateGoEnvironment(config, targets);
 
         var arguments = new List<string> { "publish", "--ucr", cs };
-        if (publishArgs is not null)
-            arguments.AddRange(publishArgs);
+        if (dotnetArgs is not null)
+            arguments.AddRange(dotnetArgs);
 
         return RunAsync(dotnet, arguments, environment);
+    }
+
+    public static Task<int> DotnetRunAsync(string dotnet, string cs, string config, string targets, IReadOnlyList<string>? dotnetArgs, IReadOnlyList<string>? appArgs)
+    {
+        var environment = CreateGoEnvironment(config, targets);
+
+        var arguments = new List<string> { "run", "--ucr", cs };
+        if (dotnetArgs is not null)
+            arguments.AddRange(dotnetArgs);
+
+        if (appArgs is { Count: > 0 })
+        {
+            arguments.Add("--");
+            arguments.AddRange(appArgs);
+        }
+
+        return RunAsync(dotnet, arguments, environment);
+    }
+
+    public static Task<int> DotnetExecAsync(string dotnet, string assembly, IReadOnlyList<string>? appArgs)
+    {
+        var arguments = new List<string> { assembly };
+        if (appArgs is not null)
+            arguments.AddRange(appArgs);
+
+        return RunAsync(dotnet, arguments, environment: null);
     }
 
     public static Task<int> RunAsync(string appPath, IReadOnlyList<string>? extraArgs = null)
@@ -49,4 +71,10 @@ public static class ProcessRunner
 
         return process.ExitCode;
     }
+
+    static Dictionary<string, string> CreateGoEnvironment(string config, string targets) => new()
+    {
+        ["GoConfig"] = config,
+        ["CustomAfterMicrosoftCSharpTargets"] = targets,
+    };
 }

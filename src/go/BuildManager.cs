@@ -1,8 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Devlooped;
 
-public record BuildState(string App, IReadOnlyList<string> Inputs)
+public record BuildState(string? App, string? Bin, IReadOnlyList<string> Inputs)
 {
     public static bool TryRead(string path, [NotNullWhen(true)] out BuildState? state)
     {
@@ -11,6 +11,7 @@ public record BuildState(string App, IReadOnlyList<string> Inputs)
             return false;
 
         string? app = null;
+        string? bin = null;
         var inputs = new List<string>();
 
         foreach (var line in File.ReadLines(path))
@@ -28,35 +29,37 @@ public record BuildState(string App, IReadOnlyList<string> Inputs)
 
             if (key == "app")
                 app = value;
+            else if (key == "bin")
+                bin = value;
             else if (key == "input")
                 inputs.Add(value);
         }
 
-        if (app is null || !File.Exists(app))
+        if (inputs.Count == 0)
             return false;
 
-        state = new BuildState(app, inputs);
+        state = new BuildState(app, bin, inputs);
         return true;
     }
 }
 
 public static class BuildManager
 {
-    public static bool IsUpToDate(BuildState state)
+    public static bool IsUpToDate(BuildState state, string artifact)
     {
-        if (string.IsNullOrWhiteSpace(state.App) || !File.Exists(state.App))
+        if (string.IsNullOrWhiteSpace(artifact) || !File.Exists(artifact))
             return false;
 
         if (state.Inputs.Count == 0)
             return false;
 
-        var appTime = File.GetLastWriteTimeUtc(state.App);
+        var artifactTime = File.GetLastWriteTimeUtc(artifact);
         foreach (var input in state.Inputs)
         {
             if (!File.Exists(input))
                 return false;
 
-            if (File.GetLastWriteTimeUtc(input) > appTime)
+            if (File.GetLastWriteTimeUtc(input) > artifactTime)
                 return false;
         }
 

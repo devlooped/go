@@ -2,7 +2,7 @@ namespace Devlooped;
 
 public static class GoArgs
 {
-    public static (string[] Publish, string[] App) Split(string[] extraArgs)
+    public static (string[] Dotnet, string[] App) Split(string[] extraArgs)
     {
         var separator = Array.IndexOf(extraArgs, "--");
         if (separator < 0)

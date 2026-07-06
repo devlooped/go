@@ -1,4 +1,4 @@
-﻿using Devlooped;
+using Devlooped;
 
 namespace Tests;
 
@@ -13,9 +13,9 @@ public class BuildManagerTests
         File.SetLastWriteTimeUtc(input, DateTime.UtcNow.AddMinutes(-5));
         File.SetLastWriteTimeUtc(app, DateTime.UtcNow);
 
-        var state = new BuildState(app, [input]);
+        var state = new BuildState(app, null, [input]);
 
-        Assert.True(BuildManager.IsUpToDate(state));
+        Assert.True(BuildManager.IsUpToDate(state, app));
     }
 
     [Fact]
@@ -27,9 +27,9 @@ public class BuildManagerTests
         File.SetLastWriteTimeUtc(app, DateTime.UtcNow.AddMinutes(-5));
         File.SetLastWriteTimeUtc(input, DateTime.UtcNow);
 
-        var state = new BuildState(app, [input]);
+        var state = new BuildState(app, null, [input]);
 
-        Assert.False(BuildManager.IsUpToDate(state));
+        Assert.False(BuildManager.IsUpToDate(state, app));
     }
 
     [Fact]
@@ -37,9 +37,23 @@ public class BuildManagerTests
     {
         var dir = CreateTempDir();
         var input = WriteFile(dir, "input.cs", "input");
-        var state = new BuildState(Path.Combine(dir, "missing.exe"), [input]);
+        var state = new BuildState(Path.Combine(dir, "missing.exe"), null, [input]);
 
-        Assert.False(BuildManager.IsUpToDate(state));
+        Assert.False(BuildManager.IsUpToDate(state, state.App!));
+    }
+
+    [Fact]
+    public void IsUpToDate_works_with_bin_artifact()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "input.cs", "input");
+        var bin = WriteFile(dir, "app.dll", "bin");
+        File.SetLastWriteTimeUtc(input, DateTime.UtcNow.AddMinutes(-5));
+        File.SetLastWriteTimeUtc(bin, DateTime.UtcNow);
+
+        var state = new BuildState(null, bin, [input]);
+
+        Assert.True(BuildManager.IsUpToDate(state, bin));
     }
 
     static string CreateTempDir()

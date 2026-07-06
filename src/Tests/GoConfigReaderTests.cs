@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Devlooped;
 
 namespace Tests;
@@ -24,7 +24,8 @@ public class BuildStateTests
 
         Assert.True(success);
         Assert.NotNull(state);
-        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state.App));
+        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state.App!));
+        Assert.Null(state.Bin);
         Assert.Equal(2, state.Inputs.Count);
         Assert.Contains(state.Inputs, p => Path.GetFullPath(p) == Path.GetFullPath(inputA));
         Assert.Contains(state.Inputs, p => Path.GetFullPath(p) == Path.GetFullPath(inputB));
@@ -48,7 +49,7 @@ public class BuildStateTests
 
         Assert.True(success);
         Assert.NotNull(state);
-        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state!.App));
+        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state!.App!));
     }
 
     [Fact]
@@ -68,16 +69,59 @@ public class BuildStateTests
 
         Assert.True(success);
         Assert.NotNull(state);
-        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state!.App));
+        Assert.Equal(Path.GetFullPath(app), Path.GetFullPath(state!.App!));
     }
 
     [Fact]
-    public void TryRead_returns_false_when_app_is_missing()
+    public void TryRead_parses_bin_and_uses_last_bin_when_duplicated()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "app.cs", "app");
+        var binOld = WriteFile(dir, "old.dll", "old");
+        var binNew = WriteFile(dir, "new.dll", "new");
+        var stampPath = Path.Combine(dir, "app.stamp");
+
+        File.WriteAllText(stampPath, $"""
+            input = {ToStampPath(input)}
+            bin = {ToStampPath(binOld)}
+            bin = {ToStampPath(binNew)}
+            """);
+
+        var success = BuildState.TryRead(stampPath, out var state);
+
+        Assert.True(success);
+        Assert.NotNull(state);
+        Assert.Equal(Path.GetFullPath(binNew), Path.GetFullPath(state!.Bin!));
+    }
+
+    [Fact]
+    public void TryRead_succeeds_with_bin_only_no_app()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "app.cs", "app");
+        var bin = WriteFile(dir, "app.dll", "bin");
+        var stampPath = Path.Combine(dir, "app.stamp");
+
+        File.WriteAllText(stampPath, $"""
+            input = {ToStampPath(input)}
+            bin = {ToStampPath(bin)}
+            """);
+
+        var success = BuildState.TryRead(stampPath, out var state);
+
+        Assert.True(success);
+        Assert.NotNull(state);
+        Assert.Null(state.App);
+        Assert.Equal(Path.GetFullPath(bin), Path.GetFullPath(state.Bin!));
+    }
+
+    [Fact]
+    public void TryRead_returns_false_when_no_inputs()
     {
         var dir = CreateTempDir();
         var stampPath = Path.Combine(dir, "app.stamp");
         File.WriteAllText(stampPath, """
-            input = app.cs
+            app = app.exe
             """);
 
         var success = BuildState.TryRead(stampPath, out var state);
