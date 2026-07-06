@@ -2,7 +2,8 @@
   "profiles": {
     "go": {
       "commandName": "Project",
-      "commandLineArgs": "-?"
+      "commandLineArgs": "showcase.cs --foo bar --bar true",
+      "workingDirectory": "..\\..\\samples\\file-based-apps"
     }
   }
 }

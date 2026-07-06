@@ -1,0 +1,6 @@
+<Project>
+  <!-- Implicit build file: inherited by all file-based apps in this folder (.NET 10) -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
