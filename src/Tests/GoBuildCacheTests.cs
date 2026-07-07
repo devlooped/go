@@ -165,8 +165,10 @@ public class BuildManagerTests
         Assert.True(File.Exists(m2));
         Assert.Equal("program.cs", File.ReadAllText(m2).Trim());
 
-        // case with no program.cs: should pick the (only) other
+        // case with no program.cs: should pick the (only) remaining .cs
         File.Delete(prog);
+        var other = Path.Combine(discDir, "other.cs");
+        if (File.Exists(other)) File.Delete(other);
         if (File.Exists(m2)) File.Delete(m2);
         File.WriteAllText(Path.Combine(discDir, "only.cs"), "// only");
         var onlyDisc = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
