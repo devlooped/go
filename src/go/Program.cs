@@ -9,17 +9,15 @@ app.Add("clean", CleanAsync);
 app.Add<CleanupCommands>();
 await app.RunAsync(GoArgs.Normalize(args));
 
-/// <summary>
-/// Runs a file-based .NET app from a .cs entrypoint.
-/// </summary>
+/// <summary>Runs a file-based .NET app from a .cs entrypoint.</summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. </param>
-/// <param name="goDebug">Launch debugger before executing.</param>
+/// <param name="gdbg">Launch debugger before executing.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet publish'; arguments after '--' are forwarded to the published app. Without '--', all extra arguments are forwarded to the published app.
 /// </param>
-static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool goDebug = false, [Argument] params string[] extraArgs)
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] extraArgs)
 {
-    if (goDebug)
+    if (gdbg)
         System.Diagnostics.Debugger.Launch();
 
     var source = await GetEffectiveSourceAsync(input);
@@ -52,15 +50,13 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidd
     return await ExecuteAppAsync(publishDir, () => ProcessRunner.RunAsync(state.App, appArgs));
 }
 
-/// <summary>
-/// Deletes cached publish artifacts for a file-based .NET app, or for a remote ref: deletes the bundle and also its associated publish artifacts for every previously-used path recorded in the bundle's ETags/Entry (:path on the ref is ignored).
-/// </summary>
+/// <summary>Deletes cached publish artifacts for a file-based .NET app, or for a remote ref.</summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="all">Delete cached artifacts for all apps instead.</param>
-/// <param name="goDebug">Launch debugger before executing.</param>
-static int CleanAsync([Argument] string? input = null, [Hidden] bool all = false, [Hidden] bool goDebug = false)
+/// <param name="gdbg">Launch debugger before executing.</param>
+static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden] bool gdbg = false)
 {
-    if (goDebug)
+    if (gdbg)
         System.Diagnostics.Debugger.Launch();
 
     if (all)
@@ -144,17 +140,15 @@ static int CleanAsync([Argument] string? input = null, [Hidden] bool all = false
     return AppCleaner.Clean(pdir, stmp);
 }
 
-/// <summary>
-/// Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
-/// </summary>
+/// <summary>Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.</summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run).</param>
-/// <param name="goDebug">Launch debugger before executing.</param>
+/// <param name="gdbg">Launch debugger before executing.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet run'; arguments after '--' are forwarded to the app. Without '--', all extra arguments are forwarded to the app.
 /// </param>
-static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool goDebug = false, [Argument] params string[] extraArgs)
+static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] extraArgs)
 {
-    if (goDebug)
+    if (gdbg)
         System.Diagnostics.Debugger.Launch();
 
     var source = await GetEffectiveSourceAsync(input);
