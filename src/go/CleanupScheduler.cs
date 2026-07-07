@@ -15,7 +15,10 @@ public static class CleanupScheduler
     }
 
     public static void StartDetached()
-        => Process.Start(CreateCleanupProcessStartInfo());
+    {
+        if (CreateCleanupProcessStartInfo() is { } startInfo)
+            Process.Start(startInfo);
+    }
 
     public static Task TryScheduleAsync()
     {
@@ -34,7 +37,7 @@ public static class CleanupScheduler
         });
     }
 
-    static ProcessStartInfo CreateCleanupProcessStartInfo()
+    static ProcessStartInfo? CreateCleanupProcessStartInfo()
     {
         var commandLine = Environment.GetCommandLineArgs();
         var fileName = Environment.ProcessPath ?? commandLine[0];
@@ -57,11 +60,11 @@ public static class CleanupScheduler
         else if (IsDotnetHost(fileName))
         {
             var assembly = Assembly.GetEntryAssembly()?.Location;
-            if (!string.IsNullOrEmpty(assembly))
-            {
-                startInfo.ArgumentList.Add("exec");
-                startInfo.ArgumentList.Add(assembly);
-            }
+            if (string.IsNullOrEmpty(assembly))
+                return null;
+
+            startInfo.ArgumentList.Add("exec");
+            startInfo.ArgumentList.Add(assembly);
         }
 
         startInfo.ArgumentList.Add("cleanup");

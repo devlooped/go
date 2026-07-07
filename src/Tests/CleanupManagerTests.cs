@@ -21,6 +21,56 @@ public class CleanupManagerTests
     }
 
     [Fact]
+    public void CleanupStaleDirectories_continues_when_a_directory_cannot_be_deleted()
+    {
+        var root = CreateTempDir();
+        var locked = CreateSubDir(root, "locked");
+        var deletable = CreateSubDir(root, "deletable");
+
+        Directory.SetLastWriteTimeUtc(locked, DateTime.UtcNow.AddDays(-5));
+        Directory.SetLastWriteTimeUtc(deletable, DateTime.UtcNow.AddDays(-5));
+
+        var lockedFile = Path.Combine(locked, "file.txt");
+        File.WriteAllText(lockedFile, "locked");
+
+        using var stream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        CleanupManager.CleanupStaleDirectories(root, days: 2);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.True(Directory.Exists(locked));
+            Assert.False(Directory.Exists(deletable));
+        }
+        else
+        {
+            Assert.False(Directory.Exists(locked));
+            Assert.False(Directory.Exists(deletable));
+        }
+    }
+
+    [Fact]
+    public void Cleanup_saves_settings_even_when_a_delete_fails()
+    {
+        var root = CreateTempDir();
+        var settingsRoot = CreateTempDir();
+        var settingsPath = Path.Combine(settingsRoot, "go.toml");
+
+        var locked = CreateSubDir(root, "locked");
+        Directory.SetLastWriteTimeUtc(locked, DateTime.UtcNow.AddDays(-5));
+
+        var lockedFile = Path.Combine(locked, "file.txt");
+        File.WriteAllText(lockedFile, "locked");
+
+        using var stream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var exit = CleanupManager.Cleanup(days: 2, root: root, settingsPath: settingsPath);
+
+        Assert.Equal(0, exit);
+        Assert.NotNull(SettingsStore.Load(settingsPath).LastCleanupUtc);
+    }
+
+    [Fact]
     public void SettingsStore_roundtrips_last_cleanup_utc()
     {
         var root = CreateTempDir();
