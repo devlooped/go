@@ -96,11 +96,6 @@ dnx go clean kzu/sandbox
 dnx go clean kzu/sandbox@main:program.cs
 ```
 
-The go-specific switches support both bare and `--go-` prefixed forms for consistency:
-
-- `--debug` / `--go-debug`
-- `--r2r` / `--go-r2r`
-
 Behavior follows the chosen command:
 
 * Default command: downloads (if needed) then `dotnet publish` + execute (AOT by default).
@@ -111,9 +106,7 @@ Arguments after `--` (or all trailing args) are forwarded exactly as with local 
 ## Cache and cleaning
 
 `go#` caches build and publish outputs per entry-point file under the
-user's temp area (`%TEMP%\dotnet\go` on Windows,
-`~/.local/share/dotnet/go` on Linux, `~/Library/Application Support/dotnet/go` on macOS), which is what makes
-unchanged re-runs near-instant.
+user's temp area, which is what makes unchanged re-runs near-instant.
 
 ```console
 # Delete the cached artifacts for a single app (next run rebuilds)
