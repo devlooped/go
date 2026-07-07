@@ -4,13 +4,14 @@ namespace Devlooped;
 
 public static class ProcessRunner
 {
-    public static Task<int> PublishAsync(string dotnet, string cs, string config, string targets, IReadOnlyList<string>? dotnetArgs = null)
+    public static Task<int> PublishAsync(string dotnet, string cs, string config, string targets, string publishDir, IReadOnlyList<string>? dotnetArgs = null)
     {
         var environment = CreateGoEnvironment(config, targets);
 
         var arguments = new List<string> { "publish", "--ucr", cs };
         if (dotnetArgs is not null)
             arguments.AddRange(dotnetArgs);
+        arguments.Add($"/p:PublishDir={publishDir}");
 
         return RunAsync(dotnet, arguments, environment);
     }

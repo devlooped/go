@@ -11,5 +11,6 @@ Options:
   --r2r    Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations.
 
 Commands:
-  dev    Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
+  clean    Deletes cached build artifacts for a file-based .NET app.
+  dev      Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
 ```
