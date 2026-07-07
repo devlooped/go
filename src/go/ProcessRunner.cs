@@ -16,6 +16,9 @@ public static class ProcessRunner
         return RunAsync(dotnet, arguments, environment);
     }
 
+    public static Task<int> DotnetCleanAsync(string dotnet, string cs)
+        => RunAsync(dotnet, ["clean", cs], environment: null);
+
     public static Task<int> DotnetRunAsync(string dotnet, string cs, string config, string targets, IReadOnlyList<string>? dotnetArgs, IReadOnlyList<string>? appArgs)
     {
         var environment = CreateGoEnvironment(config, targets);

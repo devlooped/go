@@ -77,10 +77,10 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
     var full = Path.GetFullPath(input);
     if (File.Exists(full))
     {
-        if (!TryResolveEntryPoint(input, out _, out var publishDir, out var stamp))
+        if (!TryResolveEntryPoint(input, out var effectiveCs, out var publishDir, out var stamp))
             return 1;
 
-        return AppCleaner.Clean(publishDir, stamp);
+        return AppCleaner.Clean(publishDir, stamp, effectiveCs);
     }
 
     if (RemoteRef.TryParse(input, out var remote))
@@ -108,8 +108,8 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
                     var filePath = Path.Combine(bundleDir, key.Replace('/', Path.DirectorySeparatorChar));
                     if (File.Exists(filePath))
                     {
-                        if (TryResolveEntryPoint(filePath, out _, out var publishDir, out var stamp))
-                            AppCleaner.Clean(publishDir, stamp);
+                        if (TryResolveEntryPoint(filePath, out var effectiveCs, out var publishDir, out var stamp))
+                            AppCleaner.Clean(publishDir, stamp, effectiveCs);
                     }
                 }
             }
@@ -132,10 +132,10 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
         return 0;
     }
 
-    if (!TryResolveEntryPoint(input, out _, out var pdir, out var stmp))
+    if (!TryResolveEntryPoint(input, out var cs, out var pdir, out var stmp))
         return 1;
 
-    return AppCleaner.Clean(pdir, stmp);
+    return AppCleaner.Clean(pdir, stmp, cs);
 }
 
 /// <summary>Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.</summary>

@@ -2,8 +2,11 @@ namespace Devlooped;
 
 public static class AppCleaner
 {
-    public static int Clean(string publishDir, string stamp)
+    public static int Clean(string publishDir, string stamp, string? cs = null)
     {
+        if (cs is not null)
+            TryDotnetClean(cs);
+
         try
         {
             if (Directory.Exists(publishDir))
@@ -24,6 +27,22 @@ public static class AppCleaner
             {
                 return 1;
             }
+        }
+    }
+
+    static void TryDotnetClean(string cs)
+    {
+        var dotnet = DotnetMuxer.Path?.FullName;
+        if (dotnet is null || !File.Exists(cs))
+            return;
+
+        try
+        {
+            ProcessRunner.DotnetCleanAsync(dotnet, cs).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Best-effort: publish-dir cleanup still proceeds.
         }
     }
 }

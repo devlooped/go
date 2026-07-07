@@ -56,6 +56,44 @@ public class AppCleanerTests
         Assert.Equal(0, exit);
     }
 
+    [Fact]
+    public async Task Clean_runs_dotnet_clean_for_entry_point_before_removing_publish_dir()
+    {
+        var dotnet = DotnetMuxer.Path?.FullName;
+        if (dotnet is null)
+            return;
+
+        var dir = CreateTempDir();
+        var cs = Path.GetFullPath(Path.Combine(dir, "app.cs"));
+        File.WriteAllText(cs, """
+            #:property TargetFramework=net10.0
+
+            Console.WriteLine("clean-test");
+            """);
+
+        var exit = await ProcessRunner.RunAsync(dotnet, ["run", cs, "-v:q"], environment: null);
+        Assert.Equal(0, exit);
+
+        var publishDir = Path.Combine(dir, "publish");
+        var stamp = Path.Combine(publishDir, "go.stamp");
+        Directory.CreateDirectory(publishDir);
+        File.WriteAllText(stamp, string.Empty);
+
+        // File-based apps use the same entry-point hash for dotnet/go and dotnet/runfile caches.
+        var cacheDirName = Path.GetFileName(Directory.GetPublishDir(cs));
+        var runfileRoot = Path.Combine(Path.GetTempPath(), "dotnet", "runfile", cacheDirName);
+        Assert.True(Directory.Exists(runfileRoot));
+        var builtApp = Path.Combine(runfileRoot, "bin", "debug", "app.dll");
+        Assert.True(File.Exists(builtApp));
+
+        exit = AppCleaner.Clean(publishDir, stamp, cs);
+
+        Assert.Equal(0, exit);
+        Assert.False(File.Exists(builtApp));
+
+        try { Directory.Delete(dir, recursive: true); } catch { }
+    }
+
     static string CreateTempDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "go-tests-" + Guid.NewGuid().ToString("N"));
