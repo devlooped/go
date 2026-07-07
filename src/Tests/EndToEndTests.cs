@@ -233,53 +233,63 @@ public class EndToEndTests
         var remoteRef = "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381";
         var logPath = Path.Combine(scratch, "stale-download.log");
 
-        // Ensure clean-ish start for this ref's cache dir (best effort)
-        try { RunGo("clean", remoteRef); } catch { }
+        try
+        {
+            // Ensure clean-ish start for this ref's cache dir (best effort)
+            try { RunGo("clean", remoteRef); } catch { }
 
-        // Warm-up download
-        var warm = RunGo(remoteRef, "--", "-v:q");
-        Assert.Equal(0, warm.ExitCode);
-        Assert.Contains("run.cs", warm.Output);
+            // Warm-up download
+            var warm = RunGo(remoteRef, "--", "-v:q");
+            Assert.Equal(0, warm.ExitCode);
+            Assert.Contains("run.cs", warm.Output);
 
-        // Locate the downloaded source cs for this ref (uses the same base as production)
-        var goRoot = GetTempRoot();
-        var gistRoot = Directory.GetDirectories(goRoot, "*", SearchOption.AllDirectories)
-            .FirstOrDefault(d => d.Replace('\\', '/').Contains("gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381"));
-        Assert.False(string.IsNullOrEmpty(gistRoot), "expected download dir for gist ref");
-        var sourceCs = Directory.GetFiles(gistRoot, "run.cs", SearchOption.AllDirectories).FirstOrDefault()
-            ?? Directory.GetFiles(gistRoot, "*.cs", SearchOption.AllDirectories).FirstOrDefault();
-        Assert.False(string.IsNullOrEmpty(sourceCs), "expected source .cs under download");
-        var srcInfo = new FileInfo(sourceCs);
+            // Locate the downloaded source cs for this ref (robust search, not brittle FirstOrDefault + loose contains)
+            var goRoot = GetTempRoot();
+            var gistCandidates = Directory.GetDirectories(goRoot, "*0ac826dc7de666546aaedd38e5965381*", SearchOption.AllDirectories)
+                .OrderByDescending(d => d.Length)
+                .ToArray();
+            var gistRoot = gistCandidates.FirstOrDefault(d => Directory.GetFiles(d, "*.cs", SearchOption.AllDirectories).Any())
+                ?? gistCandidates.FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(gistRoot), "expected download dir for gist ref");
+            var sourceCs = Directory.GetFiles(gistRoot, "run.cs", SearchOption.AllDirectories).FirstOrDefault()
+                ?? Directory.GetFiles(gistRoot, "*.cs", SearchOption.AllDirectories).OrderBy(f => f).FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(sourceCs), "expected source .cs under download");
+            var srcInfo = new FileInfo(sourceCs);
 
-        // Artificially age it >14 days
-        var staleTime = DateTime.UtcNow.AddDays(-20);
-        srcInfo.LastWriteTimeUtc = staleTime;
-        Assert.True((DateTime.UtcNow - srcInfo.LastWriteTimeUtc).TotalDays > 14);
+            // Artificially age it >14 days
+            var staleTime = DateTime.UtcNow.AddDays(-20);
+            srcInfo.LastWriteTimeUtc = staleTime;
+            Assert.True((DateTime.UtcNow - srcInfo.LastWriteTimeUtc).TotalDays > 14);
 
-        // Re-invoke: should detect stale, (re)download/touch mtime to recent, succeed with marker
-        var (exitStale, outStale) = RunGo(remoteRef, "--", "-v:q");
-        File.WriteAllText(logPath, "STALE-RE-INVOKE:\n" + outStale);
-        Assert.Equal(0, exitStale);
-        Assert.Contains("run.cs", outStale);
+            // Re-invoke: should detect stale, (re)download/touch mtime to recent, succeed with marker
+            var (exitStale, outStale) = RunGo(remoteRef, "--", "-v:q");
+            File.WriteAllText(logPath, "STALE-RE-INVOKE:\n" + outStale);
+            Assert.Equal(0, exitStale);
+            Assert.Contains("run.cs", outStale);
 
-        srcInfo.Refresh();
-        var afterStaleMtime = srcInfo.LastWriteTimeUtc;
-        File.AppendAllText(logPath, $"\nSOURCE-MTIME-AFTER-STALE: {afterStaleMtime:O}\n");
-        Assert.True((DateTime.UtcNow - afterStaleMtime).TotalMinutes < 5, "source mtime should be refreshed to recent by re-dl");
+            srcInfo.Refresh();
+            var afterStaleMtime = srcInfo.LastWriteTimeUtc;
+            File.AppendAllText(logPath, $"\nSOURCE-MTIME-AFTER-STALE: {afterStaleMtime:O}\n");
+            Assert.True((DateTime.UtcNow - afterStaleMtime).TotalMinutes < 5, "source mtime should be refreshed to recent by re-dl");
 
-        // Immediate follow-up: must NOT update the source mtime (plan requirement)
-        var mtimeBeforeImmediate = srcInfo.LastWriteTimeUtc;
-        var (exitImm, outImm) = RunGo(remoteRef, "--", "-v:q");
-        File.AppendAllText(logPath, "IMMEDIATE-FOLLOWUP:\n" + outImm);
-        Assert.Equal(0, exitImm);
-        Assert.Contains("run.cs", outImm);
+            // Immediate follow-up: must NOT update the source mtime (plan requirement)
+            var mtimeBeforeImmediate = srcInfo.LastWriteTimeUtc;
+            var (exitImm, outImm) = RunGo(remoteRef, "--", "-v:q");
+            File.AppendAllText(logPath, "IMMEDIATE-FOLLOWUP:\n" + outImm);
+            Assert.Equal(0, exitImm);
+            Assert.Contains("run.cs", outImm);
 
-        srcInfo.Refresh();
-        var mtimeAfterImmediate = srcInfo.LastWriteTimeUtc;
-        File.AppendAllText(logPath, $"SOURCE-MTIME-AFTER-IMMEDIATE: {mtimeAfterImmediate:O}\n");
+            srcInfo.Refresh();
+            var mtimeAfterImmediate = srcInfo.LastWriteTimeUtc;
+            File.AppendAllText(logPath, $"SOURCE-MTIME-AFTER-IMMEDIATE: {mtimeAfterImmediate:O}\n");
 
-        var deltaSeconds = (mtimeAfterImmediate - mtimeBeforeImmediate).TotalSeconds;
-        // The immediate run (cache hit, no dl) must not have updated the source mtime via our logic or observable change.
-        Assert.True(deltaSeconds < 2.0, $"immediate follow-up must not update source mtime (delta={deltaSeconds}s)");
+            var deltaSeconds = (mtimeAfterImmediate - mtimeBeforeImmediate).TotalSeconds;
+            // The immediate run (cache hit, no dl) must not have updated the source mtime via our logic or observable change.
+            Assert.True(deltaSeconds < 2.0, $"immediate follow-up must not update source mtime (delta={deltaSeconds}s)");
+        }
+        finally
+        {
+            try { RunGo("clean", remoteRef); } catch { }
+        }
     }
 }

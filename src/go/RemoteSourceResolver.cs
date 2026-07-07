@@ -49,16 +49,18 @@ public static class RemoteSourceResolver
                 return Path.Combine(remote.TempPath, name.Replace('/', Path.DirectorySeparatorChar));
         }
 
-        // Robust discovery (handles case where ExtractToAsync deleted the dir + marker on re-dl, or marker missing for other reason):
-        // If files are already present on disk, pick the first .cs (so we don't resolve to non-existent "program.cs" and force spurious dl).
+        // Robust discovery (handles case where ExtractToAsync deleted the dir + marker on re-dl, or marker missing for other reason).
+        // Must prefer 'program.cs' (when present) exactly like the post-extract logic in DownloadIfNeededAsync,
+        // otherwise marker-absent + 2+ top-level .cs files yields non-deterministic/wrong effectiveCs.
         if (Directory.Exists(remote.TempPath))
         {
+            var prog = Path.Combine(remote.TempPath, "program.cs");
             var first = Directory.EnumerateFiles(remote.TempPath, "*.cs", SearchOption.TopDirectoryOnly).FirstOrDefault();
-            if (first != null)
+            var chosen = File.Exists(prog) ? prog : (first ?? prog);
+            if (chosen != null)
             {
-                var name = Path.GetFileName(first);
-                try { File.WriteAllText(marker, name); } catch { }
-                return first;
+                try { File.WriteAllText(marker, Path.GetFileName(chosen)); } catch { }
+                return chosen;
             }
         }
 
