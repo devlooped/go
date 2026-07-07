@@ -32,8 +32,17 @@ public class AppCleanerTests
         var exit = AppCleaner.Clean(root, stamp);
 
         Assert.Equal(0, exit);
-        Assert.True(Directory.Exists(root));
-        Assert.False(File.Exists(stamp));
+        if (OperatingSystem.IsWindows())
+        {
+            // Exclusive lock should cause Directory.Delete to fail, triggering stamp-only fallback
+            Assert.True(Directory.Exists(root));
+            Assert.False(File.Exists(stamp));
+        }
+        else
+        {
+            // On Unix, open file locks do not prevent directory deletion; dir (and stamp) are removed
+            Assert.False(Directory.Exists(root));
+        }
     }
 
     [Fact]
