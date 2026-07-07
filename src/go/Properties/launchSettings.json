@@ -2,7 +2,7 @@
   "profiles": {
     "go": {
       "commandName": "Project",
-      "commandLineArgs": "kzu/runfile@v1:run.cs -gdbg"
+      "commandLineArgs": "kzu/runfile@v1:run.cs -v:q --r2r -- hello world"
     }
   }
 }

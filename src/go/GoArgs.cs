@@ -4,7 +4,13 @@ public static class GoArgs
 {
     public static readonly string[] ReadyToRunPublishArgs = ["/p:PublishAot=false", "/p:PublishReadyToRun=true"];
 
-    static readonly string[] GoSwitchNames = ["debug", "r2r"];
+    static readonly string[] GoSwitchNames = ["debug", "r2r", "gdbg"];
+    static readonly HashSet<string> Subcommands = new(StringComparer.OrdinalIgnoreCase) { "dev", "clean" };
+
+    static string[]? forwardArgs;
+
+    /// <summary>Arguments stripped before CAF parsing; forward to dotnet and/or the target app via <see cref="Split"/>.</summary>
+    internal static string[] ForwardArgs => forwardArgs ?? [];
 
     /// <summary>
     /// Normalizes go-specific switches so both prefix-less and --go- forms
@@ -39,6 +45,101 @@ public static class GoArgs
             result.Add(arg);
         }
         return [.. result];
+    }
+
+    /// <summary>
+    /// Splits raw invocation args into a CAF-safe slice (subcommand, input, go flags only)
+    /// and pass-through args for dotnet publish/run and the target app.
+    /// <para>
+    /// Under <c>dnx go</c>, the first <c>--</c> is go's dotnet/app separator — not a CAF escape.
+    /// Dotnet options like <c>/p:MyProp=true</c> or <c>-v:q</c> must not reach CAF or they are
+    /// rejected as unrecognized options.
+    /// </para>
+    /// </summary>
+    internal static string[] PrepareCafArgs(string[] args)
+    {
+        args = Normalize(args);
+        if (args.Length == 0)
+        {
+            forwardArgs = [];
+            return args;
+        }
+
+        if (args.Any(static a => a is "-h" or "--help" or "--version"))
+        {
+            forwardArgs = [];
+            return args;
+        }
+
+        var index = 0;
+        string? subcommand = null;
+        if (Subcommands.Contains(args[0]))
+        {
+            subcommand = args[0].Equals("dev", StringComparison.OrdinalIgnoreCase) ? "dev" : "clean";
+            index = 1;
+        }
+
+        if (subcommand == "clean")
+        {
+            forwardArgs = [];
+            return args;
+        }
+
+        var caf = new List<string>();
+        if (subcommand == "dev")
+            caf.Add("dev");
+
+        string? input = null;
+        var forward = new List<string>();
+        var goFlags = new List<string>();
+
+        for (var i = index; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (TryMatchGoFlag(arg, out var cafFlag))
+            {
+                goFlags.Add(cafFlag);
+                continue;
+            }
+
+            if (input is null)
+            {
+                input = arg;
+                continue;
+            }
+
+            forward.Add(arg);
+        }
+
+        if (input is not null)
+            caf.Add(input);
+
+        caf.AddRange(goFlags);
+
+        forwardArgs = forward.Count == 0 ? [] : [.. forward];
+        return [.. caf];
+    }
+
+    static bool TryMatchGoFlag(string arg, out string cafFlag)
+    {
+        cafFlag = "";
+        if (!arg.StartsWith("--", StringComparison.Ordinal))
+            return false;
+
+        var name = arg[2..];
+        if (name.Equals("r2r", StringComparison.OrdinalIgnoreCase))
+        {
+            cafFlag = "--r2r";
+            return true;
+        }
+
+        if (name is "debug" or "gdbg")
+        {
+            cafFlag = "--gdbg";
+            return true;
+        }
+
+        return false;
     }
 
     public static (string[] Dotnet, string[] App) Split(string[] extraArgs)

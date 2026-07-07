@@ -7,15 +7,13 @@ app.Add("", RunAsync);
 app.Add("dev", DevAsync);
 app.Add("clean", CleanAsync);
 app.Add<CleanupCommands>();
-await app.RunAsync(GoArgs.Normalize(args));
+await app.RunAsync(GoArgs.PrepareCafArgs(args));
 
 /// <summary>Runs a file-based .NET app from a .cs entrypoint.</summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. </param>
 /// <param name="gdbg">Launch debugger before executing.</param>
-/// <param name="extraArgs">Arguments before '--' are passed to 'dotnet publish'; arguments after '--' are forwarded to the published app. Without '--', all extra arguments are forwarded to the published app.
-/// </param>
-static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] extraArgs)
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false)
 {
     if (gdbg)
         System.Diagnostics.Debugger.Launch();
@@ -24,7 +22,7 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidd
     if (source is null)
         return 1;
 
-    var context = Prepare(source, extraArgs, r2r);
+    var context = Prepare(source, GoArgs.ForwardArgs, r2r);
     if (context is null)
         return 1;
 
@@ -144,9 +142,7 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run).</param>
 /// <param name="gdbg">Launch debugger before executing.</param>
-/// <param name="extraArgs">Arguments before '--' are passed to 'dotnet run'; arguments after '--' are forwarded to the app. Without '--', all extra arguments are forwarded to the app.
-/// </param>
-static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] extraArgs)
+static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false)
 {
     if (gdbg)
         System.Diagnostics.Debugger.Launch();
@@ -155,7 +151,7 @@ static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = fal
     if (source is null)
         return 1;
 
-    var context = Prepare(source, extraArgs);
+    var context = Prepare(source, GoArgs.ForwardArgs);
     if (context is null)
         return 1;
 
