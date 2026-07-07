@@ -20,7 +20,7 @@ public static class ProcessRunner
     {
         var environment = CreateGoEnvironment(config, targets);
 
-        var arguments = new List<string> { "run", "--ucr", cs };
+        var arguments = new List<string> { "run", cs };
         if (dotnetArgs is not null)
             arguments.AddRange(dotnetArgs);
 
