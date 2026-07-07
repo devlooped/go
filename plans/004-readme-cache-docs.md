@@ -186,3 +186,5 @@ Stop and report back (do not improvise) if:
 - If plan 003's flag is renamed (e.g. to a subcommand), update the example.
 - Deferred: documenting the `go.stamp` format and `go.targets` contract — that
   belongs in a future AGENTS.md (audit finding 7), not the user-facing readme.
+
+<!-- exclude -->
