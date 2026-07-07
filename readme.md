@@ -25,10 +25,14 @@ It shines for:
 dnx go app.cs
 
 # Pass arguments to your app
+dnx go app.cs arg1 arg2
+
+# Also works
 dnx go app.cs -- arg1 arg2
 
 # Pass arguments to the underlying `dotnet publish`
-dnx go app.cs /p:MyProp=true -- arg1 arg2
+# First -- is for dotnet publish, second -- is for your app
+dnx go app.cs -- /p:MyProp=true -- arg1 arg2
 ```
 
 The default mode publishes the app with native AOT and then runs the resulting executable, 
@@ -42,6 +46,9 @@ that native AOT does not support, while still keeping most publish optimizations
 dnx go app.cs --r2r
 
 # Pass arguments to your app
+dnx go app.cs --r2r arg1 arg2
+
+# Also works
 dnx go app.cs --r2r -- arg1 arg2
 ```
 
