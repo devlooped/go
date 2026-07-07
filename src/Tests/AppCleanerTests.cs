@@ -80,9 +80,14 @@ public class AppCleanerTests
         File.WriteAllText(stamp, string.Empty);
 
         // File-based apps use the same entry-point hash for dotnet/go and dotnet/runfile caches.
+        // The SDK may place runfile under TMPDIR or LocalApplicationData depending on OS.
         var cacheDirName = Path.GetFileName(Directory.GetPublishDir(cs));
-        var runfileRoot = Path.Combine(Path.GetTempPath(), "dotnet", "runfile", cacheDirName);
-        Assert.True(Directory.Exists(runfileRoot));
+        var runfileRoot = new[]
+        {
+            Path.Combine(Path.GetTempPath(), "dotnet", "runfile", cacheDirName),
+            Path.Combine(Path.GetDirectoryName(Directory.GetTempRoot())!, "runfile", cacheDirName),
+        }.FirstOrDefault(Directory.Exists);
+        Assert.NotNull(runfileRoot);
         var builtApp = Path.Combine(runfileRoot, "bin", "debug", "app.dll");
         Assert.True(File.Exists(builtApp));
 
