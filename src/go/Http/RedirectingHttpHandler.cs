@@ -34,7 +34,7 @@ public sealed class RedirectingHttpHandler(HttpMessageHandler innerHandler, para
     }
 }
 
-internal static class StatusExtensions
+static class StatusExtensions
 {
     public static bool IsRedirect(this HttpResponseMessage response) =>
         response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther or
