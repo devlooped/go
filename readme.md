@@ -62,6 +62,25 @@ dnx go dev app.cs -- arg1 arg2
 dnx go dev app.cs /p:Configuration=Release -- arg1 arg2
 ```
 
+## Cache and cleaning
+
+`go#` caches build and publish outputs per entry-point file under the
+user's temp area (`%TEMP%\dotnet\go` on Windows,
+`~/.local/share/dotnet/go` on Linux, `~/Library/Application Support/dotnet/go` on macOS), which is what makes
+unchanged re-runs near-instant.
+
+```console
+# Delete the cached artifacts for a single app (next run rebuilds)
+dnx go clean app.cs
+
+# Delete the cached artifacts for all apps
+dnx go clean --all
+```
+
+Caches are also cleaned automatically: at most once every couple of days,
+`go#` removes cache directories that haven't been used for a while, in a
+detached background process. Apps you run regularly are never affected.
+
 ## Performance
 
 The main advantage of `go#` is **fast unchanged re-runs**. 
