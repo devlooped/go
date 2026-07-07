@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.0-alpha](https://github.com/devlooped/go/tree/v1.0.0-alpha) (2026-07-07)
+
+[Full Changelog](https://github.com/devlooped/go/compare/v0.9.1...v1.0.0-alpha)
+
+:sparkles: Implemented enhancements:
+
+- Support `go clean <remote-ref>` \(bundle + per-path publishes\) [\#20](https://github.com/devlooped/go/pull/20) (@kzu)
+- Ref-based remote download support [\#17](https://github.com/devlooped/go/pull/17) (@kzu)
+
+:twisted_rightwards_arrows: Merged:
+
+- feat: always ETag revalidate remote refs + consolidate entry/etag into bundle go.toml [\#19](https://github.com/devlooped/go/pull/19) (@kzu)
+
 ## [v0.9.1](https://github.com/devlooped/go/tree/v0.9.1) (2026-07-07)
 
 [Full Changelog](https://github.com/devlooped/go/compare/v0.9.0...v0.9.1)
