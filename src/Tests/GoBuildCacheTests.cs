@@ -146,6 +146,34 @@ public class BuildManagerTests
 
         // cleanup marker for hygiene
         try { File.Delete(marker); } catch { }
+
+        // NEW: exercise dir-exists + no-marker discovery branch (must prefer program.cs deterministically, write marker)
+        var uniq2 = Guid.NewGuid().ToString("N")[..8];
+        var remoteDisc = new Devlooped.RemoteRef("disc" + uniq2, "repo" + uniq2, null, null, null);
+        var cand = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
+        var discDir = Path.GetDirectoryName(cand)!;
+        Directory.CreateDirectory(discDir);
+        var m2 = Path.Combine(discDir, ".go-entry");
+        if (File.Exists(m2)) File.Delete(m2);
+
+        // write program.cs + another to test prefer
+        File.WriteAllText(Path.Combine(discDir, "other.cs"), "// other");
+        var prog = Path.Combine(discDir, "program.cs");
+        File.WriteAllText(prog, "// prog");
+        var discovered = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
+        Assert.Equal(prog, discovered);
+        Assert.True(File.Exists(m2));
+        Assert.Equal("program.cs", File.ReadAllText(m2).Trim());
+
+        // case with no program.cs: should pick the (only) other
+        File.Delete(prog);
+        if (File.Exists(m2)) File.Delete(m2);
+        File.WriteAllText(Path.Combine(discDir, "only.cs"), "// only");
+        var onlyDisc = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
+        Assert.EndsWith("only.cs", onlyDisc);
+        Assert.Equal("only.cs", File.ReadAllText(m2).Trim());
+
+        try { File.Delete(m2); Directory.Delete(discDir, true); } catch { }
     }
 
     [Fact]
