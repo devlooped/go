@@ -59,25 +59,25 @@ public class GoArgsTests
     [Fact]
     public void Normalize_maps_go_prefixed_switches_to_bare_forms()
     {
-        var normalized = GoArgs.Normalize(["--go-force", "--go-debug", "--go-r2r", "owner/repo", "--", "apparg"]);
+        var normalized = GoArgs.Normalize(["--go-debug", "--go-r2r", "owner/repo", "--", "apparg"]);
 
-        Assert.Equal(["--force", "--debug", "--r2r", "owner/repo", "--", "apparg"], normalized);
+        Assert.Equal(["--debug", "--r2r", "owner/repo", "--", "apparg"], normalized);
     }
 
     [Fact]
     public void Normalize_leaves_bare_and_unknown_untouched()
     {
-        var normalized = GoArgs.Normalize(["--force", "--debug", "--r2r", "--other", "input.cs"]);
+        var normalized = GoArgs.Normalize(["--debug", "--r2r", "--other", "input.cs"]);
 
-        Assert.Equal(["--force", "--debug", "--r2r", "--other", "input.cs"], normalized);
+        Assert.Equal(["--debug", "--r2r", "--other", "input.cs"], normalized);
     }
 
     [Fact]
     public void Normalize_handles_mixed_case_and_all_forms()
     {
-        var normalized = GoArgs.Normalize(["--Go-Force", "--DEBUG", "ref"]);
+        var normalized = GoArgs.Normalize(["--Go-Debug", "--R2R", "ref"]);
 
-        Assert.Equal(["--force", "--debug", "ref"], normalized);
+        Assert.Equal(["--debug", "--r2r", "ref"], normalized);
     }
 
     [Fact]

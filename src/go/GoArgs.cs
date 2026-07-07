@@ -4,10 +4,10 @@ public static class GoArgs
 {
     public static readonly string[] ReadyToRunPublishArgs = ["/p:PublishAot=false", "/p:PublishReadyToRun=true"];
 
-    static readonly string[] GoSwitchNames = ["force", "debug", "r2r"];
+    static readonly string[] GoSwitchNames = ["debug", "r2r"];
 
     /// <summary>
-    /// Normalizes go-specific switches so both prefix-less (--force) and --go- forms (--go-force)
+    /// Normalizes go-specific switches so both prefix-less and --go- forms
     /// are accepted; maps --go-* aliases to the bare form the command methods declare.
     /// </summary>
     public static string[] Normalize(string[] args)

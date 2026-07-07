@@ -71,6 +71,9 @@ unchanged re-runs near-instant.
 # Delete the cached artifacts for a single app (next run rebuilds)
 dnx go clean app.cs
 
+# Delete the downloaded bundle for a remote ref (next run re-downloads; :path ignored)
+dnx go clean owner/repo[@ref][:path]
+
 # Delete the cached artifacts for all apps
 dnx go clean --all
 ```

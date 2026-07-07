@@ -298,12 +298,6 @@ public class EndToEndTests
 
             Assert.True((mtimeAfterImm - mtimeBeforeImm).TotalSeconds < 2.0, "immediate must not change source file mtime");
             Assert.True(rootAfterImm > rootBeforeImm || rootAfterImm >= rootBeforeImm, "root dir touched on immediate use too");
-
-            // --force should succeed (forces full fetch, bypassing any conditional).
-            var (exitForce, outForce) = RunGo("--force", remoteRef, "--", "-v:q");
-            File.AppendAllText(logPath, "FORCE:\n" + outForce);
-            Assert.Equal(0, exitForce);
-            Assert.Contains("run.cs", outForce);
         }
         finally
         {
