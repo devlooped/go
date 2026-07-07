@@ -30,23 +30,12 @@ public class CleanupManagerTests
         Directory.SetLastWriteTimeUtc(locked, DateTime.UtcNow.AddDays(-5));
         Directory.SetLastWriteTimeUtc(deletable, DateTime.UtcNow.AddDays(-5));
 
-        var lockedFile = Path.Combine(locked, "file.txt");
-        File.WriteAllText(lockedFile, "locked");
-
-        using var stream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var blocker = BlockDirectoryDeletion(locked);
 
         CleanupManager.CleanupStaleDirectories(root, days: 2);
 
-        if (OperatingSystem.IsWindows())
-        {
-            Assert.True(Directory.Exists(locked));
-            Assert.False(Directory.Exists(deletable));
-        }
-        else
-        {
-            Assert.False(Directory.Exists(locked));
-            Assert.False(Directory.Exists(deletable));
-        }
+        Assert.True(Directory.Exists(locked));
+        Assert.False(Directory.Exists(deletable));
     }
 
     [Fact]
@@ -59,10 +48,7 @@ public class CleanupManagerTests
         var locked = CreateSubDir(root, "locked");
         Directory.SetLastWriteTimeUtc(locked, DateTime.UtcNow.AddDays(-5));
 
-        var lockedFile = Path.Combine(locked, "file.txt");
-        File.WriteAllText(lockedFile, "locked");
-
-        using var stream = new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var blocker = BlockDirectoryDeletion(locked);
 
         var exit = CleanupManager.Cleanup(days: 2, root: root, settingsPath: settingsPath);
 
@@ -89,6 +75,28 @@ public class CleanupManagerTests
         {
             if (File.Exists(settingsPath))
                 File.Delete(settingsPath);
+        }
+    }
+
+    static IDisposable BlockDirectoryDeletion(string directory)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var lockedFile = Path.Combine(directory, "file.txt");
+            File.WriteAllText(lockedFile, "locked");
+            return new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
+        }
+
+        File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        return NoopDisposable.Instance;
+    }
+
+    sealed class NoopDisposable : IDisposable
+    {
+        public static readonly NoopDisposable Instance = new();
+
+        public void Dispose()
+        {
         }
     }
 
