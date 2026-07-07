@@ -4,14 +4,14 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
 
-
     <AssemblyName>go</AssemblyName>
     <RootNamespace>Devlooped</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
 
-    <Description>A dotnet global tool that locates the dotnet executable.</Description>
+    <Description>An optimized runner for C# file-based apps.</Description>
     <PackageId>go</PackageId>
+    <ToolCommandName>dotnet-go</ToolCommandName>
     <PackAsTool>true</PackAsTool>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <PackageTags>dotnet dotnet-tool</PackageTags>

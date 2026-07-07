@@ -1,0 +1,5 @@
+input=C:/Code/go/samples/#ref/lib.cs
+bin=C:/Users/kzu/AppData/Local/Temp/dotnet/runfile/lib-0fc901df1b6f03463d8171d60610a6a0bf15e0a24483673932fc5fbfcf9e2a12/bin/release/lib.dll
+input=C:/Code/go/samples/#ref/app.cs
+bin=C:/Users/kzu/AppData/Local/Temp/dotnet/runfile/app-5e3076bfd25050b7f63e7ee4a1ecfe190f67b6b664cee3fa56de0f7bdc26348c/bin/release/app.dll
+app=C:/Code/go/samples/#ref/artifacts/app/app.exe

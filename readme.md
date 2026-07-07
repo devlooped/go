@@ -5,18 +5,6 @@
 [![EULA](https://img.shields.io/badge/EULA-OSMF-blue?labelColor=black&color=C9FF30)](https://github.com/devlooped/oss/blob/main/osmfeula.txt)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/devlooped/oss/blob/main/license.txt)
 
-<!-- include https://github.com/devlooped/.github/raw/main/osmf.md -->
-## Open Source Maintenance Fee
-
-To ensure the long-term sustainability of this project, users of this package who generate 
-revenue must pay an [Open Source Maintenance Fee](https://opensourcemaintenancefee.org). 
-While the source code is freely available under the terms of the [License](license.txt), 
-this package and other aspects of the project require [adherence to the Maintenance Fee](osmfeula.txt).
-
-To pay the Maintenance Fee, [become a Sponsor](https://github.com/sponsors/devlooped) at the proper 
-OSMF tier. A single fee covers all of [Devlooped packages](https://www.nuget.org/profiles/Devlooped).
-
-<!-- https://github.com/devlooped/.github/raw/main/osmf.md -->
 <!-- #content -->
 
 ## What is `go#`?
@@ -29,6 +17,7 @@ It shines for:
 - Fast iteration with smart caching (subsequent runs are near-instant when nothing changed)
 - Easy sharing of small utilities (just the `.cs` file)
 
+
 ## Usage
 
 ```console
@@ -39,34 +28,54 @@ dnx go app.cs
 dnx go app.cs -- arg1 arg2
 
 # Pass arguments to the underlying `dotnet publish`
-dnx go app.cs /p:PublishAot=true -- arg1 arg2
+dnx go app.cs /p:MyProp=true -- arg1 arg2
+```
+
+The default mode publishes the app and then runs the resulting executable, 
+with smart up-to-date checks of every C# file used to build the app (including 
+`#include` and `#ref` directives, transitively).
+
+A dev mode is also available for faster iteration, which skips the publish step 
+and runs the app directly from the build output without the optimizations 
+applied by dotnet to published executables (i.e. AOT, RID-specific optimizations):
+
+```console
+dnx go dev app.cs
+
+# Pass arguments to your app
+dnx go dev app.cs -- arg1 arg2
+
+# Pass arguments to the underlying `dotnet run`
+dnx go dev app.cs /p:Configuration=Release -- arg1 arg2
 ```
 
 ## Performance
 
-The main advantage of `go#` is **fast unchanged re-runs**. The numbers below compare the three common approaches on pristine sources.
+The main advantage of `go#` is **fast unchanged re-runs**. 
+The two core scenarios for `go#` file-based apps are:
+* While tweaking 👉 `dnx go dev app.cs` (optimized `dotnet run app.cs`)
+* When stable 👉 `dnx go app.cs` (optimized `dotnet publish app.cs; app[.exe]`)
 
-**PublishAot=false**
+The numbers below showcase both scenarios, comparing `go#` to `dotnet run` and 
+`dotnet publish` for a file-based app with different combinations of `#include` and `#ref` directives.
 
-| Example            | `dotnet run app.cs` | `go app.cs`  | `dotnet publish ...; app.exe` |
-|--------------------|---------------------|--------------|-------------------------------|
-| a) no includes     | 1.306s              | 0.264s       | 5.044s                        |
-| b) #include        | 1.169s              | 0.198s       | 4.857s                        |
-| c) #ref            | 4.605s              | 0.191s       | 6.243s                        |
-| d) #include + #ref | 13.079s             | 0.227s       | 7.320s                        |
-
-**PublishAot=true** (NativeAOT)
-
-| Example            | `dotnet run app.cs` | `go app.cs`  | `dotnet publish ...; app.exe` |
-|--------------------|---------------------|--------------|-------------------------------|
-| a) no includes     | —                   | 0.227s       | 12.436s                       |
-| b) #include        | —                   | 0.164s       | 11.145s                       |
-| c) #ref            | —                   | 0.183s       | 32.874s                       |
-| d) #include + #ref | —                   | 0.269s       | 21.888s                       |
-
-**Observation**: `go#` re-runs are fast (~0.16–0.27s) — just launching the cached executable when no changes are detected in any of the input files (including the `#include` and `#ref` dependencies).
+<-- include src/Benchmarks/BenchmarkDotNet.Artifacts/results/GoBenchmarks-report-github.md -->
 
 <!-- #content -->
+---
+
+<!-- include https://github.com/devlooped/.github/raw/main/osmf.md -->
+## Open Source Maintenance Fee
+
+To ensure the long-term sustainability of this project, users of this package who generate 
+revenue must pay an [Open Source Maintenance Fee](https://opensourcemaintenancefee.org). 
+While the source code is freely available under the terms of the [License](license.txt), 
+this package and other aspects of the project require [adherence to the Maintenance Fee](osmfeula.txt).
+
+To pay the Maintenance Fee, [become a Sponsor](https://github.com/sponsors/devlooped) at the proper 
+OSMF tier. A single fee covers all of [Devlooped packages](https://www.nuget.org/profiles/Devlooped).
+
+<!-- https://github.com/devlooped/.github/raw/main/osmf.md -->
 ---
 <!-- include https://github.com/devlooped/sponsors/raw/main/footer.md -->
 # Sponsors 

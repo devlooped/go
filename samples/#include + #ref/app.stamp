@@ -1,0 +1,6 @@
+input=C:/Code/go/samples/#include + #ref/reflib.cs
+bin=C:/Users/kzu/AppData/Local/Temp/dotnet/runfile/reflib-8aae09897a040a6d1bac9731dbdc2f1e0e630f1a5564244c139eb4a6ba497fa5/bin/release/reflib.dll
+input=C:/Code/go/samples/#include + #ref/inclib.cs
+input=C:/Code/go/samples/#include + #ref/app.cs
+bin=C:/Users/kzu/AppData/Local/Temp/dotnet/runfile/app-36bda31a755da169e4319c50303dc3a86879b4ffca15bc4e32a93e0c791f393a/bin/release/app.dll
+app=C:/Code/go/samples/#include + #ref/artifacts/app/app.exe
