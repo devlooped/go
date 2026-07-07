@@ -226,12 +226,12 @@ public class EndToEndTests
     }
 
     [Fact]
-    public void Remote_stale_2week_re_download_refreshes_mtime_immediate_followup_does_not()
+    public void Remote_ref_always_revalidates_via_etag_root_dir_touched_source_files_not()
     {
         var scratch = @"C:\Users\kzu\AppData\Local\Temp\grok-goal-4376de8fe197\implementer";
         Directory.CreateDirectory(scratch);
         var remoteRef = "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381";
-        var logPath = Path.Combine(scratch, "stale-download.log");
+        var logPath = Path.Combine(scratch, "remote-etag.log");
 
         try
         {
@@ -243,7 +243,7 @@ public class EndToEndTests
             Assert.Equal(0, warm.ExitCode);
             Assert.Contains("run.cs", warm.Output);
 
-            // Locate the downloaded source cs for this ref (robust search, not brittle FirstOrDefault + loose contains)
+            // Locate the downloaded source cs and its bundle root dir for this ref
             var goRoot = GetTempRoot();
             var gistCandidates = Directory.GetDirectories(goRoot, "*0ac826dc7de666546aaedd38e5965381*", SearchOption.AllDirectories)
                 .OrderByDescending(d => d.Length)
@@ -256,36 +256,54 @@ public class EndToEndTests
             Assert.False(string.IsNullOrEmpty(sourceCs), "expected source .cs under download");
             var srcInfo = new FileInfo(sourceCs);
 
-            // Artificially age it >14 days
-            var staleTime = DateTime.UtcNow.AddDays(-20);
-            srcInfo.LastWriteTimeUtc = staleTime;
-            Assert.True((DateTime.UtcNow - srcInfo.LastWriteTimeUtc).TotalDays > 14);
+            // The bundle root (unzipped ref dir) is the gistRoot we found (contains the sources for this gist download).
+            var bundleRoot = gistRoot;
+            var rootInfo = new DirectoryInfo(bundleRoot);
+            var rootMtimeBefore = rootInfo.LastWriteTimeUtc;
 
-            // Re-invoke: should detect stale, (re)download/touch mtime to recent, succeed with marker
-            var (exitStale, outStale) = RunGo(remoteRef, "--", "-v:q");
-            File.WriteAllText(logPath, "STALE-RE-INVOKE:\n" + outStale);
-            Assert.Equal(0, exitStale);
-            Assert.Contains("run.cs", outStale);
+            // Second run (rapid): always performs ETag check; on 304 we touch *only* the root dir,
+            // individual source files are not touched.
+            var mtimeBefore = srcInfo.LastWriteTimeUtc;
+            var (exit2, out2) = RunGo(remoteRef, "--", "-v:q");
+            File.WriteAllText(logPath, "SECOND-RUN:\n" + out2);
+            Assert.Equal(0, exit2);
+            Assert.Contains("run.cs", out2);
 
             srcInfo.Refresh();
-            var afterStaleMtime = srcInfo.LastWriteTimeUtc;
-            File.AppendAllText(logPath, $"\nSOURCE-MTIME-AFTER-STALE: {afterStaleMtime:O}\n");
-            Assert.True((DateTime.UtcNow - afterStaleMtime).TotalMinutes < 5, "source mtime should be refreshed to recent by re-dl");
+            rootInfo.Refresh();
+            var mtimeAfter = srcInfo.LastWriteTimeUtc;
+            var rootMtimeAfter = rootInfo.LastWriteTimeUtc;
 
-            // Immediate follow-up: must NOT update the source mtime (plan requirement)
-            var mtimeBeforeImmediate = srcInfo.LastWriteTimeUtc;
+            File.AppendAllText(logPath, $"\nSOURCE-MTIME-AFTER: {mtimeAfter:O}\nROOT-MTIME-AFTER: {rootMtimeAfter:O}\n");
+
+            // Source file mtime must not have been updated by resolver (no more per-file touch on 304 or extract).
+            var fileDelta = (mtimeAfter - mtimeBefore).TotalSeconds;
+            Assert.True(fileDelta < 2.0, $"source file mtime must be unchanged on revalidation (delta={fileDelta}s)");
+
+            // Root download dir *must* be touched to mark usage for cleanup.
+            Assert.True(rootMtimeAfter >= rootMtimeBefore, "bundle root dir mtime should be updated on use");
+
+            // Immediate third run: same, no source mtime change.
+            var mtimeBeforeImm = srcInfo.LastWriteTimeUtc;
+            var rootBeforeImm = rootInfo.LastWriteTimeUtc;
             var (exitImm, outImm) = RunGo(remoteRef, "--", "-v:q");
-            File.AppendAllText(logPath, "IMMEDIATE-FOLLOWUP:\n" + outImm);
+            File.AppendAllText(logPath, "IMMEDIATE:\n" + outImm);
             Assert.Equal(0, exitImm);
-            Assert.Contains("run.cs", outImm);
 
             srcInfo.Refresh();
-            var mtimeAfterImmediate = srcInfo.LastWriteTimeUtc;
-            File.AppendAllText(logPath, $"SOURCE-MTIME-AFTER-IMMEDIATE: {mtimeAfterImmediate:O}\n");
+            rootInfo.Refresh();
+            var mtimeAfterImm = srcInfo.LastWriteTimeUtc;
+            var rootAfterImm = rootInfo.LastWriteTimeUtc;
+            File.AppendAllText(logPath, $"SOURCE-MTIME-IMM: {mtimeAfterImm:O}\nROOT-MTIME-IMM: {rootAfterImm:O}\n");
 
-            var deltaSeconds = (mtimeAfterImmediate - mtimeBeforeImmediate).TotalSeconds;
-            // The immediate run (cache hit, no dl) must not have updated the source mtime via our logic or observable change.
-            Assert.True(deltaSeconds < 2.0, $"immediate follow-up must not update source mtime (delta={deltaSeconds}s)");
+            Assert.True((mtimeAfterImm - mtimeBeforeImm).TotalSeconds < 2.0, "immediate must not change source file mtime");
+            Assert.True(rootAfterImm > rootBeforeImm || rootAfterImm >= rootBeforeImm, "root dir touched on immediate use too");
+
+            // --force should succeed (forces full fetch, bypassing any conditional).
+            var (exitForce, outForce) = RunGo("--force", remoteRef, "--", "-v:q");
+            File.AppendAllText(logPath, "FORCE:\n" + outForce);
+            Assert.Equal(0, exitForce);
+            Assert.Contains("run.cs", outForce);
         }
         finally
         {

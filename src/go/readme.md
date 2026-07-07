@@ -75,9 +75,8 @@ dnx go clean app.cs
 dnx go clean --all
 ```
 
-Caches are also cleaned automatically: at most once every couple of days,
-`go#` removes cache directories that haven't been used for a while, in a
-detached background process. Apps you run regularly are never affected.
+Unused download locations and published binaries are periodically cleaned up
+in a detached background process. Apps you run regularly are never affected.
 
 ## Performance
 
