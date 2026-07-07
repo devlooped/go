@@ -15,7 +15,7 @@ It shines for:
 - Quick one-off tools and prototypes
 - File-based apps without a `.csproj`
 - Fast iteration with smart caching (subsequent runs are near-instant when nothing changed)
-- Easy sharing of small utilities (just the `.cs` file)
+- Easy sharing of small utilities (just a `.cs` file **or** a remote ref like `owner/repo[@ref][:path]`)
 
 
 ## Usage
@@ -61,6 +61,53 @@ dnx go dev app.cs -- arg1 arg2
 # Pass arguments to the underlying `dotnet run`
 dnx go dev app.cs /p:Configuration=Release -- arg1 arg2
 ```
+
+## Remote references
+
+Instead of a local `.cs` file, you can pass a remote reference. The tool will download
+the content (when needed) and treat the resulting local file as the entry point:
+
+```console
+# Run from a public repo (defaults to main + program.cs or first .cs)
+dnx go kzu/sandbox
+
+# Specific branch/tag and file
+dnx go kzu/sandbox@v1.2.3:src/hello.cs
+
+# Full host (GitHub, Gist, GitLab, Azure DevOps)
+dnx go github.com/kzu/sandbox@main:hello.cs
+dnx go gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
+dnx go gitlab.com/kzu/runcs/-/blob/main/program.cs
+```
+
+The first argument is resolved by first checking if it is a local file (`File.Exists`).
+If not, it falls back to parsing it as a remote ref (`owner/repo[@ref][:path]`).
+
+Downloaded content is cached under the `dotnet/go` directory (same root as local apps)
+and participates in the normal up-to-date checks. By default, a remote ref is
+considered fresh for **2 weeks**. After that (or when using `--force` / `--go-force`),
+it will be re-downloaded.
+
+```console
+# Force a fresh download even if within the 2-week window
+dnx go --force kzu/sandbox
+
+# Same using the --go- alias form
+dnx go --go-force kzu/sandbox
+```
+
+The go-specific switches support both bare and `--go-` prefixed forms for consistency:
+
+- `--force` / `--go-force`
+- `--debug` / `--go-debug`
+- `--r2r` / `--go-r2r`
+
+Behavior follows the chosen command:
+
+* Default command: downloads (if needed) then `dotnet publish` + execute (AOT by default).
+* `dev` command: downloads (if needed) then `dotnet run` for fast iteration.
+
+Arguments after `--` (or all trailing args) are forwarded exactly as with local files.
 
 ## Cache and cleaning
 
