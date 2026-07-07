@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.9.1](https://github.com/devlooped/go/tree/v0.9.1) (2026-07-07)
+
+[Full Changelog](https://github.com/devlooped/go/compare/v0.9.0...v0.9.1)
+
 ## [v0.9.0](https://github.com/devlooped/go/tree/v0.9.0) (2026-07-07)
 
 [Full Changelog](https://github.com/devlooped/go/compare/ace053e6b074e06197461817b16bd6056d54fa6c...v0.9.0)
