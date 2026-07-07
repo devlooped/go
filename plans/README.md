@@ -10,7 +10,7 @@ executor needs no context beyond the plan file itself.
 | # | Plan | Priority | Effort | Depends on | Status |
 |---|------|----------|--------|------------|--------|
 | 001 | [Harden background cache cleanup](001-harden-cache-cleanup.md) | P1 | S | — | DONE |
-| 002 | [End-to-end cache behavior tests](002-e2e-cache-tests.md) | P1 | M | — | TODO |
+| 002 | [End-to-end cache behavior tests](002-e2e-cache-tests.md) | P1 | M | — | DONE |
 | 003 | [`go clean --all`](003-clean-all.md) | P2 | S | 001 | TODO |
 | 004 | [Readme: cache and cleaning docs](004-readme-cache-docs.md) | P2 | S | 003 | TODO |
 
