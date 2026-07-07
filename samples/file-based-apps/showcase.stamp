@@ -1,7 +1,0 @@
-input = C:/Code/go/samples/file-based-apps/libs/greeter.cs
-input = C:/Code/go/samples/file-based-apps/libs/utils.cs
-input = C:/Code/go/samples/file-based-apps/libs/mathlib.cs
-input = C:/Code/go/samples/file-based-apps/includes/models/task-item.cs
-input = C:/Code/go/samples/file-based-apps/includes/extensions/string-extensions.cs
-input = C:/Code/go/samples/file-based-apps/showcase.cs
-app = C:/Code/go/samples/file-based-apps/artifacts/showcase/showcase.exe
