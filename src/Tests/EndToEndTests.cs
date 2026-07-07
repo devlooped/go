@@ -49,6 +49,27 @@ public class EndToEndTests
     }
 
     [Fact]
+    public void Publish_passes_v_q_to_dotnet_and_forwards_app_args()
+    {
+        var app = CreateAppThatEchoesArgs();
+
+        try
+        {
+            RunGo("clean", app);
+
+            var (exit, output) = RunGo(app, "--r2r", "/v:q", "--", "hello", "world");
+            Assert.Equal(0, exit);
+            Assert.Contains("APP:hello|world", output);
+            Assert.DoesNotContain("Build started", output);
+            Assert.DoesNotContain("Determining projects to restore", output);
+        }
+        finally
+        {
+            CleanApp(app);
+        }
+    }
+
+    [Fact]
     public void Publish_r2r_second_run_hits_cache()
     {
         var marker = "e2e-" + Guid.NewGuid().ToString("N");
@@ -149,6 +170,18 @@ public class EndToEndTests
             #:property TargetFramework=net10.0
 
             Console.WriteLine("{marker}");
+            """);
+        return app;
+    }
+
+    static string CreateAppThatEchoesArgs()
+    {
+        var dir = CreateTempDir();
+        var app = Path.Combine(dir, "app.cs");
+        File.WriteAllText(app, """
+            #:property TargetFramework=net10.0
+
+            Console.WriteLine("APP:" + string.Join("|", args));
             """);
         return app;
     }
