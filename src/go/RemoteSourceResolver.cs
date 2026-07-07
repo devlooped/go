@@ -48,6 +48,20 @@ public static class RemoteSourceResolver
             if (!string.IsNullOrEmpty(name))
                 return Path.Combine(remote.TempPath, name.Replace('/', Path.DirectorySeparatorChar));
         }
+
+        // Robust discovery (handles case where ExtractToAsync deleted the dir + marker on re-dl, or marker missing for other reason):
+        // If files are already present on disk, pick the first .cs (so we don't resolve to non-existent "program.cs" and force spurious dl).
+        if (Directory.Exists(remote.TempPath))
+        {
+            var first = Directory.EnumerateFiles(remote.TempPath, "*.cs", SearchOption.TopDirectoryOnly).FirstOrDefault();
+            if (first != null)
+            {
+                var name = Path.GetFileName(first);
+                try { File.WriteAllText(marker, name); } catch { }
+                return first;
+            }
+        }
+
         return Path.Combine(remote.TempPath, "program.cs");
     }
 
@@ -104,19 +118,21 @@ public static class RemoteSourceResolver
                 contents?.Dispose();
             }
 
-            // After possible extract, pick actual entry if Path not specified and default candidate missing
-            if (!File.Exists(candidate) && remote.Path is null)
+            // After (possible) extract on a download path, (re)determine the actual entry point and (re)write the .go-entry marker.
+            // This guarantees the marker survives ExtractToAsync's Directory.Delete of the entire TempPath.
+            // We no longer rely solely on the pre-dl 'candidate' value for the existence check.
+            if (remote.Path is null)
             {
-                var firstCs = Directory.EnumerateFiles(remote.TempPath, "*.cs", SearchOption.TopDirectoryOnly).FirstOrDefault();
-                if (firstCs != null)
+                var prog = Path.Combine(remote.TempPath, "program.cs");
+                var chosen = File.Exists(prog)
+                    ? prog
+                    : (Directory.EnumerateFiles(remote.TempPath, "*.cs", SearchOption.TopDirectoryOnly).FirstOrDefault() ?? prog);
+                candidate = chosen;
+                try
                 {
-                    candidate = firstCs;
-                    try
-                    {
-                        File.WriteAllText(Path.Combine(remote.TempPath, ".go-entry"), Path.GetFileName(candidate));
-                    }
-                    catch { }
+                    File.WriteAllText(Path.Combine(remote.TempPath, ".go-entry"), Path.GetFileName(candidate));
                 }
+                catch { }
             }
 
             // Ensure the chosen source (and other .cs) have fresh mtime for the window and for stamp/build logic
