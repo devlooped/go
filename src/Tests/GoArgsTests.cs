@@ -39,4 +39,20 @@ public class GoArgsTests
         Assert.Empty(dotnet);
         Assert.Equal(["arg1"], app);
     }
+
+    [Fact]
+    public void ApplyPublishMode_adds_r2r_properties_when_enabled()
+    {
+        var args = GoArgs.ApplyPublishMode(["-c", "Release"], readyToRun: true);
+
+        Assert.Equal(["/p:PublishAot=false", "/p:PublishReadyToRun=true", "-c", "Release"], args);
+    }
+
+    [Fact]
+    public void ApplyPublishMode_leaves_args_unchanged_when_disabled()
+    {
+        var args = GoArgs.ApplyPublishMode(["-c", "Release"], readyToRun: false);
+
+        Assert.Equal(["-c", "Release"], args);
+    }
 }

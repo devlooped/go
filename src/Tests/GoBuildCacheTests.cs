@@ -56,6 +56,34 @@ public class BuildManagerTests
         Assert.True(BuildManager.IsUpToDate(state, bin));
     }
 
+    [Fact]
+    public void IsUpToDate_returns_false_when_mode_mismatches()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "input.cs", "input");
+        var app = WriteFile(dir, "app.exe", "app");
+        File.SetLastWriteTimeUtc(input, DateTime.UtcNow.AddMinutes(-5));
+        File.SetLastWriteTimeUtc(app, DateTime.UtcNow);
+
+        var state = new BuildState(app, null, [input], PublishMode.Aot);
+
+        Assert.False(BuildManager.IsUpToDate(state, app, PublishMode.R2r));
+    }
+
+    [Fact]
+    public void IsUpToDate_returns_true_when_mode_matches()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "input.cs", "input");
+        var app = WriteFile(dir, "app.exe", "app");
+        File.SetLastWriteTimeUtc(input, DateTime.UtcNow.AddMinutes(-5));
+        File.SetLastWriteTimeUtc(app, DateTime.UtcNow);
+
+        var state = new BuildState(app, null, [input], PublishMode.R2r);
+
+        Assert.True(BuildManager.IsUpToDate(state, app, PublishMode.R2r));
+    }
+
     static string CreateTempDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "go-tests-" + Guid.NewGuid().ToString("N"));

@@ -11,22 +11,23 @@ await app.RunAsync(args);
 /// Runs a file-based .NET app from a .cs entrypoint.
 /// </summary>
 /// <param name="input">Path to an existing .cs file.</param>
+/// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet publish'; arguments after '--' are forwarded to the published app. Without '--', all extra arguments are forwarded to the published app.
 /// </param>
-static async Task<int> RunAsync([Argument] string input, [Argument] params string[] extraArgs)
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Argument] params string[] extraArgs)
 {
-    var context = Prepare(input, extraArgs);
+    var context = Prepare(input, extraArgs, r2r);
     if (context is null)
         return 1;
 
-    var (dotnet, cs, stamp, targets, dotnetArgs, appArgs) = context.Value;
+    var (dotnet, cs, stamp, targets, mode, dotnetArgs, appArgs) = context.Value;
 
     if (BuildState.TryRead(stamp, out var state) &&
         state.App is not null &&
-        BuildManager.IsUpToDate(state, state.App))
+        BuildManager.IsUpToDate(state, state.App, mode))
         return await ProcessRunner.RunAsync(state.App, appArgs);
 
-    File.WriteAllText(stamp, string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    File.WriteAllText(stamp, BuildState.InitialContent(mode), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
     var exit = await ProcessRunner.PublishAsync(dotnet, cs, stamp, targets, dotnetArgs);
     if (exit != 0)
@@ -53,7 +54,7 @@ static async Task<int> DevAsync([Argument] string input, [Argument] params strin
     if (context is null)
         return 1;
 
-    var (dotnet, cs, stamp, targets, dotnetArgs, appArgs) = context.Value;
+    var (dotnet, cs, stamp, targets, _, dotnetArgs, appArgs) = context.Value;
 
     if (BuildState.TryRead(stamp, out var state) &&
         state.Bin is not null &&
@@ -65,7 +66,7 @@ static async Task<int> DevAsync([Argument] string input, [Argument] params strin
     return await ProcessRunner.DotnetRunAsync(dotnet, cs, stamp, targets, dotnetArgs, appArgs);
 }
 
-static (string Dotnet, string Cs, string Stamp, string Targets, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs)
+static (string Dotnet, string Cs, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs, bool readyToRun = false)
 {
     var dotnet = DotnetMuxer.Path?.FullName;
     if (dotnet is null)
@@ -82,8 +83,10 @@ static (string Dotnet, string Cs, string Stamp, string Targets, string[] DotnetA
     }
 
     var (dotnetArgs, appArgs) = GoArgs.Split(extraArgs);
+    var mode = readyToRun ? PublishMode.R2r : PublishMode.Aot;
+    dotnetArgs = GoArgs.ApplyPublishMode(dotnetArgs, readyToRun);
     var stamp = Path.ChangeExtension(cs, "stamp");
     var targets = Path.Combine(AppContext.BaseDirectory, "go.targets");
 
-    return (dotnet, cs, stamp, targets, dotnetArgs, appArgs);
+    return (dotnet, cs, stamp, targets, mode, dotnetArgs, appArgs);
 }
