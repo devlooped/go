@@ -57,6 +57,44 @@ public class CleanupManagerTests
     }
 
     [Fact]
+    public void Cleanup_with_zero_days_deletes_fresh_directories()
+    {
+        var root = CreateTempDir();
+        var settingsRoot = CreateTempDir();
+        var settingsPath = Path.Combine(settingsRoot, "go.toml");
+        var first = CreateSubDir(root, "first");
+        var second = CreateSubDir(root, "second");
+
+        Directory.SetLastWriteTimeUtc(first, DateTime.UtcNow);
+        Directory.SetLastWriteTimeUtc(second, DateTime.UtcNow);
+
+        var exit = CleanupManager.Cleanup(days: 0, root: root, settingsPath: settingsPath);
+
+        Assert.Equal(0, exit);
+        Assert.False(Directory.Exists(first));
+        Assert.False(Directory.Exists(second));
+    }
+
+    [Fact]
+    public void Cleanup_with_zero_days_preserves_files_in_root()
+    {
+        var root = CreateTempDir();
+        var settingsRoot = CreateTempDir();
+        var settingsPath = Path.Combine(settingsRoot, "go.toml");
+        var subdir = CreateSubDir(root, "cached");
+        var looseFile = Path.Combine(root, "go.toml");
+        File.WriteAllText(looseFile, "settings");
+
+        Directory.SetLastWriteTimeUtc(subdir, DateTime.UtcNow);
+
+        var exit = CleanupManager.Cleanup(days: 0, root: root, settingsPath: settingsPath);
+
+        Assert.Equal(0, exit);
+        Assert.False(Directory.Exists(subdir));
+        Assert.True(File.Exists(looseFile));
+    }
+
+    [Fact]
     public void SettingsStore_roundtrips_last_cleanup_utc()
     {
         var root = CreateTempDir();
