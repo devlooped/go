@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="ConsoleAppFramework" Version="5.7.13" PrivateAssets="all" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,6 +5,8 @@ using Devlooped;
 var app = ConsoleApp.Create();
 app.Add("", RunAsync);
 app.Add("dev", DevAsync);
+app.Add("clean", CleanAsync);
+app.Add<CleanupCommands>();
 await app.RunAsync(args);
 
 /// <summary>
@@ -20,16 +22,16 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Argu
     if (context is null)
         return 1;
 
-    var (dotnet, cs, stamp, targets, mode, dotnetArgs, appArgs) = context.Value;
+    var (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs) = context.Value;
 
     if (BuildState.TryRead(stamp, out var state) &&
         state.App is not null &&
         BuildManager.IsUpToDate(state, state.App, mode))
-        return await ProcessRunner.RunAsync(state.App, appArgs);
+        return await ExecuteAppAsync(publishDir, () => ProcessRunner.RunAsync(state.App, appArgs));
 
     File.WriteAllText(stamp, BuildState.InitialContent(mode), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-    var exit = await ProcessRunner.PublishAsync(dotnet, cs, stamp, targets, dotnetArgs);
+    var exit = await ProcessRunner.PublishAsync(dotnet, cs, stamp, targets, publishDir, dotnetArgs);
     if (exit != 0)
         return exit;
 
@@ -39,7 +41,19 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Argu
         return 1;
     }
 
-    return await ProcessRunner.RunAsync(state.App, appArgs);
+    return await ExecuteAppAsync(publishDir, () => ProcessRunner.RunAsync(state.App, appArgs));
+}
+
+/// <summary>
+/// Deletes cached publish artifacts for a file-based .NET app.
+/// </summary>
+/// <param name="input">Path to an existing .cs file.</param>
+static int CleanAsync([Argument] string input)
+{
+    if (!TryResolveEntryPoint(input, out var publishDir, out var stamp))
+        return 1;
+
+    return AppCleaner.Clean(publishDir, stamp);
 }
 
 /// <summary>
@@ -54,19 +68,42 @@ static async Task<int> DevAsync([Argument] string input, [Argument] params strin
     if (context is null)
         return 1;
 
-    var (dotnet, cs, stamp, targets, _, dotnetArgs, appArgs) = context.Value;
+    var (dotnet, cs, publishDir, stamp, targets, _, dotnetArgs, appArgs) = context.Value;
 
     if (BuildState.TryRead(stamp, out var state) &&
         state.Bin is not null &&
         BuildManager.IsUpToDate(state, state.Bin))
-        return await ProcessRunner.DotnetExecAsync(dotnet, state.Bin, appArgs);
+        return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetExecAsync(dotnet, state.Bin, appArgs));
 
     File.WriteAllText(stamp, string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-    return await ProcessRunner.DotnetRunAsync(dotnet, cs, stamp, targets, dotnetArgs, appArgs);
+    return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetRunAsync(dotnet, cs, stamp, targets, dotnetArgs, appArgs));
 }
 
-static (string Dotnet, string Cs, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs, bool readyToRun = false)
+static async Task<int> ExecuteAppAsync(string publishDir, Func<Task<int>> execute)
+{
+    Directory.Touch(publishDir);
+    _ = CleanupScheduler.TryScheduleAsync();
+    return await execute();
+}
+
+static bool TryResolveEntryPoint(string input, out string publishDir, out string stamp)
+{
+    var cs = Path.GetFullPath(input);
+    if (!File.Exists(cs))
+    {
+        ConsoleApp.LogError($"File not found: {cs}");
+        publishDir = string.Empty;
+        stamp = string.Empty;
+        return false;
+    }
+
+    publishDir = Directory.GetPublishDir(cs);
+    stamp = Path.Combine(publishDir, "go.stamp");
+    return true;
+}
+
+static (string Dotnet, string Cs, string PublishDir, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs, bool readyToRun = false)
 {
     var dotnet = DotnetMuxer.Path?.FullName;
     if (dotnet is null)
@@ -75,18 +112,15 @@ static (string Dotnet, string Cs, string Stamp, string Targets, PublishMode Mode
         return null;
     }
 
-    var cs = Path.GetFullPath(input);
-    if (!File.Exists(cs))
-    {
-        ConsoleApp.LogError($"File not found: {cs}");
+    if (!TryResolveEntryPoint(input, out var publishDir, out var stamp))
         return null;
-    }
+
+    var cs = Path.GetFullPath(input);
 
     var (dotnetArgs, appArgs) = GoArgs.Split(extraArgs);
     var mode = readyToRun ? PublishMode.R2r : PublishMode.Aot;
     dotnetArgs = GoArgs.ApplyPublishMode(dotnetArgs, readyToRun);
-    var stamp = Path.ChangeExtension(cs, "stamp");
     var targets = Path.Combine(AppContext.BaseDirectory, "go.targets");
 
-    return (dotnet, cs, stamp, targets, mode, dotnetArgs, appArgs);
+    return (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs);
 }
