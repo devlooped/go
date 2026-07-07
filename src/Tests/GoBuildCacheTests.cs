@@ -97,4 +97,78 @@ public class BuildManagerTests
         File.WriteAllText(path, content);
         return path;
     }
+
+    [Fact]
+    public void TryResolveEntryPoint_prefers_FileExists_then_fallsback_to_RemoteRefTryParse()
+    {
+        var dir = CreateTempDir();
+        var local = WriteFile(dir, "app.cs", "Console.WriteLine(1);");
+        var full = Path.GetFullPath(local);
+
+        var ok1 = Devlooped.RemoteSourceResolver.TryResolveEntryPoint(local, out var eff1, out var pdir1, out var stamp1);
+        Assert.True(ok1);
+        Assert.Equal(full, eff1);
+        Assert.False(string.IsNullOrEmpty(pdir1));
+
+        // non existing local + invalid ref => fail
+        var bad = Path.Combine(dir, "nope.cs");
+        var okBad = Devlooped.RemoteSourceResolver.TryResolveEntryPoint(bad, out _, out _, out _);
+        Assert.False(okBad);
+
+        // remote ref string (no local file) => parses, returns target path under go base
+        var okRef = Devlooped.RemoteSourceResolver.TryResolveEntryPoint("kzu/runfile:run.cs", out var effRef, out var pdirRef, out _);
+        Assert.True(okRef);
+        Assert.Contains("run.cs", effRef);
+        Assert.Contains("dotnet/go", effRef.Replace('\\', '/'));
+    }
+
+    [Fact]
+    public void GetRemoteEntryPointPath_uses_path_or_program_or_persisted_marker()
+    {
+        // use distinct owner/repo to avoid collision with persisted markers from other tests/runs
+        var uniq = Guid.NewGuid().ToString("N")[..8];
+        var remoteNoPath = new Devlooped.RemoteRef("o" + uniq, "r" + uniq, null, null, null);
+        var p = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteNoPath);
+        Assert.EndsWith("program.cs", p);
+
+        var withPath = new Devlooped.RemoteRef("o" + uniq, "r" + uniq, null, "src/app.cs", null);
+        p = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(withPath);
+        Assert.EndsWith("src/app.cs", p.Replace('\\', '/'));
+
+        // simulate persist
+        var dir = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteNoPath);
+        var tempDir = Path.GetDirectoryName(dir)!;
+        Directory.CreateDirectory(tempDir);
+        var marker = Path.Combine(tempDir, ".go-entry");
+        File.WriteAllText(marker, "actual.cs");
+        p = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteNoPath);
+        Assert.EndsWith("actual.cs", p);
+
+        // cleanup marker for hygiene
+        try { File.Delete(marker); } catch { }
+    }
+
+    [Fact]
+    public void IsRemoteDownloadStale_uses_2week_window_on_mtime()
+    {
+        var dir = CreateTempDir();
+        var f = WriteFile(dir, "src.cs", "// test");
+        File.SetLastWriteTimeUtc(f, DateTime.UtcNow.AddDays(-20));
+        Assert.True(Devlooped.RemoteSourceResolver.IsRemoteDownloadStale(f));
+
+        File.SetLastWriteTimeUtc(f, DateTime.UtcNow.AddDays(-3));
+        Assert.False(Devlooped.RemoteSourceResolver.IsRemoteDownloadStale(f));
+
+        var missing = Path.Combine(dir, "no.cs");
+        Assert.True(Devlooped.RemoteSourceResolver.IsRemoteDownloadStale(missing));
+    }
+
+    [Fact]
+    public async Task GetEffectiveSourceAsync_returns_local_existing_without_net()
+    {
+        var dir = CreateTempDir();
+        var f = WriteFile(dir, "local.cs", "Console.WriteLine(\"hi\");");
+        var eff = await Devlooped.RemoteSourceResolver.GetEffectiveSourceAsync(f, force: false);
+        Assert.Equal(Path.GetFullPath(f), eff);
+    }
 }

@@ -78,6 +78,69 @@ public class EndToEndTests
         }
     }
 
+    [Fact]
+    public void Remote_ref_default_command_runs_twice_identical_and_uses_dotnet_go()
+    {
+        var scratch = @"C:\Users\kzu\AppData\Local\Temp\grok-goal-4376de8fe197\implementer";
+        Directory.CreateDirectory(scratch);
+        var remoteRef = "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381";
+        try
+        {
+            // warm-up populate (may emit build logs)
+            RunGo(remoteRef, "--", "-v:q");
+
+            // two runs that should hit cache for identical clean output
+            var (exit1, output1) = RunGo(remoteRef, "--", "-v:q");
+            File.WriteAllText(Path.Combine(scratch, "remote-run1.log"), output1);
+            Assert.Equal(0, exit1);
+            Assert.Contains("run.cs", output1);
+
+            var (exit2, output2) = RunGo(remoteRef, "--", "-v:q");
+            File.WriteAllText(Path.Combine(scratch, "remote-run2.log"), output2);
+            Assert.Equal(0, exit2);
+            Assert.Contains("run.cs", output2);
+            Assert.Equal(output1, output2);
+
+            // basedir evidence
+            var root = GetTempRoot();
+            var listing = string.Join(Environment.NewLine, Directory.GetDirectories(root, "*", SearchOption.AllDirectories).Take(10).Select(d => d.Replace('\\', '/')));
+            File.WriteAllText(Path.Combine(scratch, "basedir.log"), listing);
+            Assert.Contains("/dotnet/go/", listing);
+        }
+        finally
+        {
+            try { RunGo("clean", remoteRef); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Remote_ref_dev_command_runs_twice_identical_and_uses_dotnet_go()
+    {
+        var scratch = @"C:\Users\kzu\AppData\Local\Temp\grok-goal-4376de8fe197\implementer";
+        Directory.CreateDirectory(scratch);
+        var remoteRef = "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381";
+        try
+        {
+            // warm-up
+            RunGo("dev", remoteRef, "--", "-v:q");
+
+            var (exit1, output1) = RunGo("dev", remoteRef, "--", "-v:q");
+            File.WriteAllText(Path.Combine(scratch, "remote-dev1.log"), output1);
+            Assert.Equal(0, exit1);
+            Assert.Contains("run.cs", output1);
+
+            var (exit2, output2) = RunGo("dev", remoteRef, "--", "-v:q");
+            File.WriteAllText(Path.Combine(scratch, "remote-dev2.log"), output2);
+            Assert.Equal(0, exit2);
+            Assert.Contains("run.cs", output2);
+            Assert.Equal(output1, output2);
+        }
+        finally
+        {
+            try { RunGo("clean", remoteRef); } catch { }
+        }
+    }
+
     static string CreateApp(string marker)
     {
         var dir = CreateTempDir();
