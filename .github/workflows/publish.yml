@@ -10,8 +10,6 @@ on:
 env:
   DOTNET_NOLOGO: true
   Configuration: Release
-  PackOnBuild: true
-  GeneratePackageOnBuild: true
   VersionLabel: refs/tags/${{ github.event.release.tag_name }}
   GH_TOKEN: ${{ secrets.GH_TOKEN }}
   MSBUILDTERMINALLOGGER: auto
@@ -36,6 +34,15 @@ jobs:
       - name: 🧪 test
         shell: pwsh
         run: dnx --yes retest -- --no-build
+
+      - name: 🙏 publish
+        shell: pwsh
+        run: |
+          $rids = dotnet msbuild src/go/go.csproj -getproperty:RuntimeIdentifiers 
+          $rids | %{ $_.Split(';') } | %{ $_.Trim() } | ? { $_ } | %{ dotnet publish src/go/go.csproj -r $_ }
+
+      - name: 📦 pack
+        run: dotnet pack src/go/go.csproj --no-build -m:1 -bl:pack.binlog
 
       - name: 🐛 logs
         uses: actions/upload-artifact@v4
