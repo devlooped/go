@@ -68,7 +68,7 @@ Instead of a local `.cs` file, you can pass a remote reference. The tool will do
 the content (when needed) and treat the resulting local file as the entry point:
 
 ```console
-# Run from a public repo (defaults to main + program.cs or first .cs)
+# Run from a public repo (defaults to github.com, main + program.cs or first .cs)
 dnx go kzu/sandbox
 
 # Specific branch/tag and file
