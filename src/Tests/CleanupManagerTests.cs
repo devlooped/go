@@ -80,24 +80,9 @@ public class CleanupManagerTests
 
     static IDisposable BlockDirectoryDeletion(string directory)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            var lockedFile = Path.Combine(directory, "file.txt");
-            File.WriteAllText(lockedFile, "locked");
-            return new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
-        }
-
-        File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserExecute);
-        return NoopDisposable.Instance;
-    }
-
-    sealed class NoopDisposable : IDisposable
-    {
-        public static readonly NoopDisposable Instance = new();
-
-        public void Dispose()
-        {
-        }
+        var lockedFile = Path.Combine(directory, "file.txt");
+        File.WriteAllText(lockedFile, "locked");
+        return new FileStream(lockedFile, FileMode.Open, FileAccess.Read, FileShare.None);
     }
 
     static string CreateTempDir()
