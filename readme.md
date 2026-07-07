@@ -88,17 +88,18 @@ and participates in the normal up-to-date checks. Remote refs are always revalid
 by sending a conditional request (using ETag when available) to the source. A 304
 Not Modified response means the local copy is used as-is.
 
-```console
-# Force a fresh download (bypasses ETag conditional check)
-dnx go --force kzu/sandbox
+To force a fresh download for a remote ref, clean its bundle first:
 
-# Same using the --go- alias form
-dnx go --go-force kzu/sandbox
+```console
+# Clean the downloaded bundle for a remote ref (forces full download on next run)
+dnx go clean kzu/sandbox
+
+# Works for refs with @ref or :path too (the bundle for the ref is deleted entirely)
+dnx go clean kzu/sandbox@main:program.cs
 ```
 
 The go-specific switches support both bare and `--go-` prefixed forms for consistency:
 
-- `--force` / `--go-force`
 - `--debug` / `--go-debug`
 - `--r2r` / `--go-r2r`
 
@@ -119,6 +120,9 @@ unchanged re-runs near-instant.
 ```console
 # Delete the cached artifacts for a single app (next run rebuilds)
 dnx go clean app.cs
+
+# Delete the downloaded bundle for a remote ref (next run re-downloads; :path ignored)
+dnx go clean owner/repo[@ref][:path]
 
 # Delete the cached artifacts for all apps
 dnx go clean --all

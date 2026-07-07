@@ -82,7 +82,7 @@ public static class RemoteSourceResolver
         return (DateTime.UtcNow - mtime) > TimeSpan.FromDays(14);
     }
 
-    public static async Task<string?> GetEffectiveSourceAsync(string input, bool force)
+    public static async Task<string?> GetEffectiveSourceAsync(string input)
     {
         var full = Path.GetFullPath(input);
         if (File.Exists(full))
@@ -94,22 +94,17 @@ public static class RemoteSourceResolver
             return null;
         }
 
-        return await DownloadIfNeededAsync(remote, force);
+        return await DownloadIfNeededAsync(remote);
     }
 
-    internal static async Task<string> DownloadIfNeededAsync(RemoteRef remote, bool force)
+    internal static async Task<string> DownloadIfNeededAsync(RemoteRef remote)
     {
-        if (force && Directory.Exists(remote.TempPath))
-        {
-            try { Directory.Delete(remote.TempPath, recursive: true); } catch { }
-        }
-
         var candidate = GetRemoteEntryPointPath(remote);
 
         // Always revalidate remote refs via ETag (conditional request to source).
         // 304 => keep local, 200 => (re)extract. No local mtime-based freshness gate.
         string? etag = null;
-        if (!force && Directory.Exists(remote.TempPath))
+        if (Directory.Exists(remote.TempPath))
         {
             var rs = RemoteSettingsStore.Load(remote.TempPath);
             var key = GetStartupKey(remote, candidate);
@@ -120,6 +115,7 @@ public static class RemoteSourceResolver
         var requestRef = remote with { ETag = etag };
         HttpResponseMessage? contents = null;
         bool didExtract = false;
+        string? newEtag = null;
         try
         {
             contents = await provider.GetAsync(requestRef);
@@ -140,15 +136,9 @@ public static class RemoteSourceResolver
                 await contents.ExtractToAsync(remote);
                 didExtract = true;
 
-                // Persist ETag for future conditional requests (if server provided one).
-                var newEtag = contents.Headers.ETag?.ToString();
-                if (!string.IsNullOrWhiteSpace(newEtag))
-                {
-                    var rs = RemoteSettingsStore.Load(remote.TempPath);
-                    var key = GetStartupKey(remote, candidate);
-                    RemoteSettingsStore.SetETag(rs, key, newEtag);
-                    RemoteSettingsStore.Save(rs, remote.TempPath);
-                }
+                // Capture ETag; persist below using the *final* candidate (important for
+                // no-:path refs where default "program.cs" candidate may be overridden by discovery).
+                newEtag = contents.Headers.ETag?.ToString();
 
                 // Mark the ref root (unzipped bundle) dir for cleanup tracking.
                 Directory.Touch(remote.TempPath);
@@ -182,6 +172,19 @@ public static class RemoteSourceResolver
                 }
                 catch { }
             }
+        }
+
+        // Persist ETag for future conditional requests (if server provided one), using final candidate key.
+        if (didExtract && !string.IsNullOrWhiteSpace(newEtag))
+        {
+            try
+            {
+                var rs = RemoteSettingsStore.Load(remote.TempPath);
+                var key = GetStartupKey(remote, candidate);
+                RemoteSettingsStore.SetETag(rs, key, newEtag);
+                RemoteSettingsStore.Save(rs, remote.TempPath);
+            }
+            catch { }
         }
 
         // If candidate missing but dir now exists (e.g. 304 path or prior state), recompute.

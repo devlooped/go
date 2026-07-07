@@ -200,7 +200,7 @@ public class BuildManagerTests
     {
         var dir = CreateTempDir();
         var f = WriteFile(dir, "local.cs", "Console.WriteLine(\"hi\");");
-        var eff = await Devlooped.RemoteSourceResolver.GetEffectiveSourceAsync(f, force: false);
+        var eff = await Devlooped.RemoteSourceResolver.GetEffectiveSourceAsync(f);
         Assert.Equal(Path.GetFullPath(f), eff);
     }
 }

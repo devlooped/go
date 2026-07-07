@@ -15,16 +15,15 @@ await app.RunAsync(GoArgs.Normalize(args));
 /// </summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. Alias: --go-r2r.</param>
-/// <param name="force">Force re-download of remote ref if applicable. Alias: --go-force.</param>
 /// <param name="debug">Launch debugger before executing. Alias: --go-debug.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet publish'; arguments after '--' are forwarded to the published app. Without '--', all extra arguments are forwarded to the published app.
 /// </param>
-static async Task<int> RunAsync([Argument] string input, bool r2r = false, bool force = false, bool debug = false, [Argument] params string[] extraArgs)
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, bool debug = false, [Argument] params string[] extraArgs)
 {
     if (debug)
         System.Diagnostics.Debugger.Launch();
 
-    var source = await GetEffectiveSourceAsync(input, force);
+    var source = await GetEffectiveSourceAsync(input);
     if (source is null)
         return 1;
 
@@ -55,9 +54,9 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, bool 
 }
 
 /// <summary>
-/// Deletes cached publish artifacts for a file-based .NET app.
+/// Deletes cached publish artifacts for a file-based .NET app, or for a remote ref: deletes the bundle and also its associated publish artifacts for every previously-used path recorded in the bundle's ETags/Entry (:path on the ref is ignored).
 /// </summary>
-/// <param name="input">Path to an existing .cs file.</param>
+/// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="all">Delete cached artifacts for all apps instead.</param>
 static int CleanAsync([Argument] string? input = null, bool all = false)
 {
@@ -74,14 +73,72 @@ static int CleanAsync([Argument] string? input = null, bool all = false)
 
     if (input is null)
     {
-        ConsoleApp.LogError("Specify a .cs file to clean, or --all to clean all cached apps.");
+        ConsoleApp.LogError("Specify a .cs file or remote ref to clean, or --all to clean all cached apps.");
         return 1;
     }
 
-    if (!TryResolveEntryPoint(input, out _, out var publishDir, out var stamp))
+    var full = Path.GetFullPath(input);
+    if (File.Exists(full))
+    {
+        if (!TryResolveEntryPoint(input, out _, out var publishDir, out var stamp))
+            return 1;
+
+        return AppCleaner.Clean(publishDir, stamp);
+    }
+
+    if (RemoteRef.TryParse(input, out var remote))
+    {
+        var bundleDir = remote.TempPath;
+        if (Directory.Exists(bundleDir))
+        {
+            try
+            {
+                // A bundle can contain multiple ref paths in use (e.g. different :path or discovered entries).
+                // ETags keys (and the persisted Entry) record the relative file paths previously used to run.
+                // Clean the published artifacts for each by treating them as local file paths (before we nuke the bundle).
+                var settings = RemoteSettingsStore.Load(bundleDir);
+                var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrEmpty(settings.Entry))
+                    keys.Add(settings.Entry.Replace('\\', '/'));
+                if (settings.ETags != null)
+                {
+                    foreach (var k in settings.ETags.Keys)
+                        keys.Add(k.Replace('\\', '/'));
+                }
+
+                foreach (var key in keys)
+                {
+                    var filePath = Path.Combine(bundleDir, key.Replace('/', Path.DirectorySeparatorChar));
+                    if (File.Exists(filePath))
+                    {
+                        if (TryResolveEntryPoint(filePath, out _, out var publishDir, out var stamp))
+                            AppCleaner.Clean(publishDir, stamp);
+                    }
+                }
+            }
+            catch
+            {
+                // Best-effort: continue to delete the bundle even if some publish cleans failed.
+            }
+
+            try
+            {
+                Directory.Delete(bundleDir, recursive: true);
+                return 0;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    if (!TryResolveEntryPoint(input, out _, out var pdir, out var stmp))
         return 1;
 
-    return AppCleaner.Clean(publishDir, stamp);
+    return AppCleaner.Clean(pdir, stmp);
 }
 
 /// <summary>
@@ -89,16 +146,15 @@ static int CleanAsync([Argument] string? input = null, bool all = false)
 /// </summary>
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run). Alias: --go-r2r.</param>
-/// <param name="force">Force re-download of remote ref if applicable. Alias: --go-force.</param>
 /// <param name="debug">Launch debugger before executing. Alias: --go-debug.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet run'; arguments after '--' are forwarded to the app. Without '--', all extra arguments are forwarded to the app.
 /// </param>
-static async Task<int> DevAsync([Argument] string input, bool r2r = false, bool force = false, bool debug = false, [Argument] params string[] extraArgs)
+static async Task<int> DevAsync([Argument] string input, bool r2r = false, bool debug = false, [Argument] params string[] extraArgs)
 {
     if (debug)
         System.Diagnostics.Debugger.Launch();
 
-    var source = await GetEffectiveSourceAsync(input, force);
+    var source = await GetEffectiveSourceAsync(input);
     if (source is null)
         return 1;
 
@@ -150,5 +206,5 @@ static (string Dotnet, string Cs, string PublishDir, string Stamp, string Target
     return (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs);
 }
 
-static async Task<string?> GetEffectiveSourceAsync(string input, bool force)
-    => await RemoteSourceResolver.GetEffectiveSourceAsync(input, force);
+static async Task<string?> GetEffectiveSourceAsync(string input)
+    => await RemoteSourceResolver.GetEffectiveSourceAsync(input);
