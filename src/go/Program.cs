@@ -48,8 +48,26 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Argu
 /// Deletes cached publish artifacts for a file-based .NET app.
 /// </summary>
 /// <param name="input">Path to an existing .cs file.</param>
-static int CleanAsync([Argument] string input)
+/// <param name="all">Delete cached artifacts for all apps instead.</param>
+static int CleanAsync([Argument] string? input = null, bool all = false)
 {
+    if (all)
+    {
+        if (input is not null)
+        {
+            ConsoleApp.LogError("Specify either a .cs file or --all, not both.");
+            return 1;
+        }
+
+        return CleanupManager.Cleanup(days: 0);
+    }
+
+    if (input is null)
+    {
+        ConsoleApp.LogError("Specify a .cs file to clean, or --all to clean all cached apps.");
+        return 1;
+    }
+
     if (!TryResolveEntryPoint(input, out var publishDir, out var stamp))
         return 1;
 
