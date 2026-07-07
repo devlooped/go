@@ -135,26 +135,26 @@ public class BuildManagerTests
         p = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(withPath);
         Assert.EndsWith("src/app.cs", p.Replace('\\', '/'));
 
-        // simulate persist
+        // simulate persist via consolidated go.toml
         var dir = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteNoPath);
         var tempDir = Path.GetDirectoryName(dir)!;
         Directory.CreateDirectory(tempDir);
-        var marker = Path.Combine(tempDir, ".go-entry");
-        File.WriteAllText(marker, "actual.cs");
+        var settings = new Devlooped.RemoteSettings { Entry = "actual.cs" };
+        Devlooped.RemoteSettingsStore.Save(settings, tempDir);
         p = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteNoPath);
         Assert.EndsWith("actual.cs", p);
 
-        // cleanup marker for hygiene
-        try { File.Delete(marker); } catch { }
+        // cleanup for hygiene
+        try { File.Delete(Devlooped.RemoteSettingsStore.GetFilePath(tempDir)); } catch { }
 
-        // NEW: exercise dir-exists + no-marker discovery branch (must prefer program.cs deterministically, write marker)
+        // NEW: exercise dir-exists + no-entry discovery branch (must prefer program.cs deterministically, write to go.toml)
         var uniq2 = Guid.NewGuid().ToString("N")[..8];
         var remoteDisc = new Devlooped.RemoteRef("disc" + uniq2, "repo" + uniq2, null, null, null);
         var cand = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
         var discDir = Path.GetDirectoryName(cand)!;
         Directory.CreateDirectory(discDir);
-        var m2 = Path.Combine(discDir, ".go-entry");
-        if (File.Exists(m2)) File.Delete(m2);
+        var settingsPath = Devlooped.RemoteSettingsStore.GetFilePath(discDir);
+        if (File.Exists(settingsPath)) File.Delete(settingsPath);
 
         // write program.cs + another to test prefer
         File.WriteAllText(Path.Combine(discDir, "other.cs"), "// other");
@@ -162,20 +162,22 @@ public class BuildManagerTests
         File.WriteAllText(prog, "// prog");
         var discovered = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
         Assert.Equal(prog, discovered);
-        Assert.True(File.Exists(m2));
-        Assert.Equal("program.cs", File.ReadAllText(m2).Trim());
+        Assert.True(File.Exists(settingsPath));
+        var s1 = Devlooped.RemoteSettingsStore.Load(discDir);
+        Assert.Equal("program.cs", s1.Entry);
 
         // case with no program.cs: should pick the (only) remaining .cs
         File.Delete(prog);
         var other = Path.Combine(discDir, "other.cs");
         if (File.Exists(other)) File.Delete(other);
-        if (File.Exists(m2)) File.Delete(m2);
+        if (File.Exists(settingsPath)) File.Delete(settingsPath);
         File.WriteAllText(Path.Combine(discDir, "only.cs"), "// only");
         var onlyDisc = Devlooped.RemoteSourceResolver.GetRemoteEntryPointPath(remoteDisc);
         Assert.EndsWith("only.cs", onlyDisc);
-        Assert.Equal("only.cs", File.ReadAllText(m2).Trim());
+        var s2 = Devlooped.RemoteSettingsStore.Load(discDir);
+        Assert.Equal("only.cs", s2.Entry);
 
-        try { File.Delete(m2); Directory.Delete(discDir, true); } catch { }
+        try { File.Delete(settingsPath); Directory.Delete(discDir, true); } catch { }
     }
 
     [Fact]

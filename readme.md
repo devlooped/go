@@ -84,12 +84,12 @@ The first argument is resolved by first checking if it is a local file (`File.Ex
 If not, it falls back to parsing it as a remote ref (`owner/repo[@ref][:path]`).
 
 Downloaded content is cached under the `dotnet/go` directory (same root as local apps)
-and participates in the normal up-to-date checks. By default, a remote ref is
-considered fresh for **2 weeks**. After that (or when using `--force` / `--go-force`),
-it will be re-downloaded.
+and participates in the normal up-to-date checks. Remote refs are always revalidated
+by sending a conditional request (using ETag when available) to the source. A 304
+Not Modified response means the local copy is used as-is.
 
 ```console
-# Force a fresh download even if within the 2-week window
+# Force a fresh download (bypasses ETag conditional check)
 dnx go --force kzu/sandbox
 
 # Same using the --go- alias form
@@ -124,9 +124,8 @@ dnx go clean app.cs
 dnx go clean --all
 ```
 
-Caches are also cleaned automatically: at most once every couple of days,
-`go#` removes cache directories that haven't been used for a while, in a
-detached background process. Apps you run regularly are never affected.
+Unused download locations and published binaries are periodically cleaned up
+in a detached background process. Apps you run regularly are never affected.
 
 ## Performance
 
