@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Text;
 using ConsoleAppFramework;
 using Devlooped;
@@ -7,18 +8,27 @@ app.Add("", RunAsync);
 app.Add("dev", DevAsync);
 app.Add("clean", CleanAsync);
 app.Add<CleanupCommands>();
-await app.RunAsync(args);
+await app.RunAsync(GoArgs.Normalize(args));
 
 /// <summary>
 /// Runs a file-based .NET app from a .cs entrypoint.
 /// </summary>
-/// <param name="input">Path to an existing .cs file.</param>
-/// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations.</param>
+/// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
+/// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. Alias: --go-r2r.</param>
+/// <param name="force">Force re-download of remote ref if applicable. Alias: --go-force.</param>
+/// <param name="debug">Launch debugger before executing. Alias: --go-debug.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet publish'; arguments after '--' are forwarded to the published app. Without '--', all extra arguments are forwarded to the published app.
 /// </param>
-static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Argument] params string[] extraArgs)
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, bool force = false, bool debug = false, [Argument] params string[] extraArgs)
 {
-    var context = Prepare(input, extraArgs, r2r);
+    if (debug)
+        System.Diagnostics.Debugger.Launch();
+
+    var source = await GetEffectiveSourceAsync(input, force);
+    if (source is null)
+        return 1;
+
+    var context = Prepare(source, extraArgs, r2r);
     if (context is null)
         return 1;
 
@@ -68,7 +78,7 @@ static int CleanAsync([Argument] string? input = null, bool all = false)
         return 1;
     }
 
-    if (!TryResolveEntryPoint(input, out var publishDir, out var stamp))
+    if (!TryResolveEntryPoint(input, out _, out var publishDir, out var stamp))
         return 1;
 
     return AppCleaner.Clean(publishDir, stamp);
@@ -77,12 +87,22 @@ static int CleanAsync([Argument] string? input = null, bool all = false)
 /// <summary>
 /// Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
 /// </summary>
-/// <param name="input">Path to an existing .cs file.</param>
+/// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
+/// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run). Alias: --go-r2r.</param>
+/// <param name="force">Force re-download of remote ref if applicable. Alias: --go-force.</param>
+/// <param name="debug">Launch debugger before executing. Alias: --go-debug.</param>
 /// <param name="extraArgs">Arguments before '--' are passed to 'dotnet run'; arguments after '--' are forwarded to the app. Without '--', all extra arguments are forwarded to the app.
 /// </param>
-static async Task<int> DevAsync([Argument] string input, [Argument] params string[] extraArgs)
+static async Task<int> DevAsync([Argument] string input, bool r2r = false, bool force = false, bool debug = false, [Argument] params string[] extraArgs)
 {
-    var context = Prepare(input, extraArgs);
+    if (debug)
+        System.Diagnostics.Debugger.Launch();
+
+    var source = await GetEffectiveSourceAsync(input, force);
+    if (source is null)
+        return 1;
+
+    var context = Prepare(source, extraArgs);
     if (context is null)
         return 1;
 
@@ -107,21 +127,8 @@ static async Task<int> ExecuteAppAsync(string publishDir, Func<Task<int>> execut
     return exit;
 }
 
-static bool TryResolveEntryPoint(string input, out string publishDir, out string stamp)
-{
-    var cs = Path.GetFullPath(input);
-    if (!File.Exists(cs))
-    {
-        ConsoleApp.LogError($"File not found: {cs}");
-        publishDir = string.Empty;
-        stamp = string.Empty;
-        return false;
-    }
-
-    publishDir = Directory.GetPublishDir(cs);
-    stamp = Path.Combine(publishDir, "go.stamp");
-    return true;
-}
+static bool TryResolveEntryPoint(string input, out string effectiveCs, out string publishDir, out string stamp)
+    => RemoteSourceResolver.TryResolveEntryPoint(input, out effectiveCs, out publishDir, out stamp);
 
 static (string Dotnet, string Cs, string PublishDir, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs, bool readyToRun = false)
 {
@@ -132,10 +139,8 @@ static (string Dotnet, string Cs, string PublishDir, string Stamp, string Target
         return null;
     }
 
-    if (!TryResolveEntryPoint(input, out var publishDir, out var stamp))
+    if (!TryResolveEntryPoint(input, out var cs, out var publishDir, out var stamp))
         return null;
-
-    var cs = Path.GetFullPath(input);
 
     var (dotnetArgs, appArgs) = GoArgs.Split(extraArgs);
     var mode = readyToRun ? PublishMode.R2r : PublishMode.Aot;
@@ -144,3 +149,6 @@ static (string Dotnet, string Cs, string PublishDir, string Stamp, string Target
 
     return (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs);
 }
+
+static async Task<string?> GetEffectiveSourceAsync(string input, bool force)
+    => await RemoteSourceResolver.GetEffectiveSourceAsync(input, force);

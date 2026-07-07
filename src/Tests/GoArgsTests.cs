@@ -55,4 +55,35 @@ public class GoArgsTests
 
         Assert.Equal(["-c", "Release"], args);
     }
+
+    [Fact]
+    public void Normalize_maps_go_prefixed_switches_to_bare_forms()
+    {
+        var normalized = GoArgs.Normalize(["--go-force", "--go-debug", "--go-r2r", "owner/repo", "--", "apparg"]);
+
+        Assert.Equal(["--force", "--debug", "--r2r", "owner/repo", "--", "apparg"], normalized);
+    }
+
+    [Fact]
+    public void Normalize_leaves_bare_and_unknown_untouched()
+    {
+        var normalized = GoArgs.Normalize(["--force", "--debug", "--r2r", "--other", "input.cs"]);
+
+        Assert.Equal(["--force", "--debug", "--r2r", "--other", "input.cs"], normalized);
+    }
+
+    [Fact]
+    public void Normalize_handles_mixed_case_and_all_forms()
+    {
+        var normalized = GoArgs.Normalize(["--Go-Force", "--DEBUG", "ref"]);
+
+        Assert.Equal(["--force", "--debug", "ref"], normalized);
+    }
+
+    [Fact]
+    public void Normalize_empty_and_null()
+    {
+        Assert.Empty(GoArgs.Normalize([]));
+        Assert.Empty(GoArgs.Normalize(null!));
+    }
 }
