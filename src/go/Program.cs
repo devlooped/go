@@ -83,8 +83,10 @@ static async Task<int> DevAsync([Argument] string input, [Argument] params strin
 static async Task<int> ExecuteAppAsync(string publishDir, Func<Task<int>> execute)
 {
     Directory.Touch(publishDir);
-    _ = CleanupScheduler.TryScheduleAsync();
-    return await execute();
+    var cleanup = CleanupScheduler.TryScheduleAsync();
+    var exit = await execute();
+    await cleanup;
+    return exit;
 }
 
 static bool TryResolveEntryPoint(string input, out string publishDir, out string stamp)

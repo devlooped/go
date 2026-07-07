@@ -4,11 +4,11 @@ public static class CleanupManager
 {
     public const int DefaultDays = 2;
 
-    public static int Cleanup(int days = DefaultDays)
+    public static int Cleanup(int days = DefaultDays, string? root = null, string? settingsPath = null)
     {
-        CleanupStaleDirectories(Directory.GetTempRoot(), days);
+        CleanupStaleDirectories(root ?? Directory.GetTempRoot(), days);
 
-        SettingsStore.Save(new Settings { LastCleanupUtc = DateTimeOffset.UtcNow });
+        SettingsStore.Save(new Settings { LastCleanupUtc = DateTimeOffset.UtcNow }, settingsPath);
         return 0;
     }
 
@@ -21,7 +21,14 @@ public static class CleanupManager
             if (Directory.GetLastWriteTimeUtc(directory) >= cutoff)
                 continue;
 
-            Directory.Delete(directory, recursive: true);
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch
+            {
+                // Best-effort: locked/undeletable directories are retried on the next sweep.
+            }
         }
     }
 }
