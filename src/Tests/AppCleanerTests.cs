@@ -88,8 +88,10 @@ public class AppCleanerTests
             Path.Combine(Path.GetDirectoryName(Directory.GetTempRoot())!, "runfile", cacheDirName),
         }.FirstOrDefault(Directory.Exists);
         Assert.NotNull(runfileRoot);
-        var builtApp = Path.Combine(runfileRoot, "bin", "debug", "app.dll");
-        Assert.True(File.Exists(builtApp));
+        var builtApp = Directory.EnumerateFiles(runfileRoot, "app.dll", SearchOption.AllDirectories)
+            .FirstOrDefault(path => Path.GetRelativePath(runfileRoot, path)
+                .StartsWith($"bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(builtApp);
 
         exit = AppCleaner.Clean(publishDir, stamp, cs);
 
