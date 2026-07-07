@@ -130,6 +130,48 @@ public class BuildStateTests
         Assert.Null(state);
     }
 
+    [Fact]
+    public void TryRead_defaults_mode_to_aot_when_missing()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "app.cs", "app");
+        var stampPath = Path.Combine(dir, "app.stamp");
+
+        File.WriteAllText(stampPath, $"""
+            input = {ToStampPath(input)}
+            """);
+
+        var success = BuildState.TryRead(stampPath, out var state);
+
+        Assert.True(success);
+        Assert.Equal(PublishMode.Aot, state!.Mode);
+    }
+
+    [Fact]
+    public void InitialContent_writes_mode_up_front()
+    {
+        Assert.Equal("mode=aot" + Environment.NewLine, BuildState.InitialContent(PublishMode.Aot));
+        Assert.Equal("mode=r2r" + Environment.NewLine, BuildState.InitialContent(PublishMode.R2r));
+    }
+
+    [Fact]
+    public void TryRead_parses_mode_r2r()
+    {
+        var dir = CreateTempDir();
+        var input = WriteFile(dir, "app.cs", "app");
+        var stampPath = Path.Combine(dir, "app.stamp");
+
+        File.WriteAllText(stampPath, $"""
+            mode = r2r
+            input = {ToStampPath(input)}
+            """);
+
+        var success = BuildState.TryRead(stampPath, out var state);
+
+        Assert.True(success);
+        Assert.Equal(PublishMode.R2r, state!.Mode);
+    }
+
     static string CreateTempDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "go-tests-" + Guid.NewGuid().ToString("N"));

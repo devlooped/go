@@ -2,8 +2,17 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Devlooped;
 
-public record BuildState(string? App, string? Bin, IReadOnlyList<string> Inputs)
+public enum PublishMode
 {
+    Aot,
+    R2r,
+}
+
+public record BuildState(string? App, string? Bin, IReadOnlyList<string> Inputs, PublishMode Mode = PublishMode.Aot)
+{
+    public static string InitialContent(PublishMode mode)
+        => $"mode={mode.ToString().ToLowerInvariant()}{Environment.NewLine}";
+
     public static bool TryRead(string path, [NotNullWhen(true)] out BuildState? state)
     {
         state = null;
@@ -13,6 +22,7 @@ public record BuildState(string? App, string? Bin, IReadOnlyList<string> Inputs)
         string? app = null;
         string? bin = null;
         var inputs = new List<string>();
+        var mode = PublishMode.Aot;
 
         foreach (var line in File.ReadLines(path))
         {
@@ -33,20 +43,43 @@ public record BuildState(string? App, string? Bin, IReadOnlyList<string> Inputs)
                 bin = value;
             else if (key == "input")
                 inputs.Add(value);
+            else if (key == "mode" && TryParseMode(value, out var parsedMode))
+                mode = parsedMode;
         }
 
         if (inputs.Count == 0)
             return false;
 
-        state = new BuildState(app, bin, inputs);
+        state = new BuildState(app, bin, inputs, mode);
         return true;
+    }
+
+    static bool TryParseMode(string value, out PublishMode mode)
+    {
+        if (value.Equals("r2r", StringComparison.OrdinalIgnoreCase))
+        {
+            mode = PublishMode.R2r;
+            return true;
+        }
+
+        if (value.Equals("aot", StringComparison.OrdinalIgnoreCase))
+        {
+            mode = PublishMode.Aot;
+            return true;
+        }
+
+        mode = default;
+        return false;
     }
 }
 
 public static class BuildManager
 {
-    public static bool IsUpToDate(BuildState state, string artifact)
+    public static bool IsUpToDate(BuildState state, string artifact, PublishMode mode = PublishMode.Aot)
     {
+        if (state.Mode != mode)
+            return false;
+
         if (string.IsNullOrWhiteSpace(artifact) || !File.Exists(artifact))
             return false;
 

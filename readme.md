@@ -31,9 +31,22 @@ dnx go app.cs -- arg1 arg2
 dnx go app.cs /p:MyProp=true -- arg1 arg2
 ```
 
-The default mode publishes the app and then runs the resulting executable, 
+The default mode publishes the app with native AOT and then runs the resulting executable, 
 with smart up-to-date checks of every C# file used to build the app (including 
 `#include` and `#ref` directives, transitively).
+
+Use `--r2r` when your app needs more dynamic .NET features (reflection, dynamic loading, etc.) 
+that native AOT does not support, while still keeping most publish optimizations:
+
+```console
+dnx go app.cs --r2r
+
+# Pass arguments to your app
+dnx go app.cs --r2r -- arg1 arg2
+```
+
+This publishes with `/p:PublishAot=false` and `/p:PublishReadyToRun=true`. 
+An equivalent `--aot` switch is not needed since native AOT is the default for file-based apps.
 
 A dev mode is also available for faster iteration, which skips the publish step 
 and runs the app directly from the build output without the optimizations 
