@@ -72,7 +72,7 @@ The two core scenarios for `go#` file-based apps are:
 The numbers below showcase both scenarios, comparing `go#` to `dotnet run` and 
 `dotnet publish` for a file-based app with different combinations of `#include` and `#ref` directives.
 
-<-- include src/Benchmarks/BenchmarkDotNet.Artifacts/results/GoBenchmarks-report-github.md -->
+<!-- include ./artifacts/results/Benchmarks-report-github.md -->
 
 <!-- #content -->
 ---

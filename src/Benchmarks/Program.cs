@@ -6,12 +6,12 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 
 var artifactsDir = Path.GetFullPath(Path.Combine(
-    AppContext.BaseDirectory, "..", "..", "..", "BenchmarkDotNet.Artifacts"));
+    ThisAssembly.Project.MSBuildProjectDirectory, "..", "..", "artifacts"));
 
 var config = DefaultConfig.Instance
     .WithArtifactsPath(artifactsDir);
 
-BenchmarkRunner.Run<GoBenchmarks>(config);
+BenchmarkRunner.Run<Benchmarks>(config);
 
 public record Sample(string Name, string App)
 {
@@ -19,7 +19,7 @@ public record Sample(string Name, string App)
 }
 
 [Config(typeof(BenchmarkConfig))]
-public class GoBenchmarks
+public class Benchmarks
 {
     class BenchmarkConfig : ManualConfig
     {
