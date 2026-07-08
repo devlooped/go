@@ -15,6 +15,10 @@ It shines for:
 - Fast iteration with smart caching (subsequent runs are near-instant when nothing changed)
 - Easy sharing of small utilities (just a `.cs` file **or** a remote ref like `owner/repo[@ref][:path]`)
 
+`go#` optimizes the underlying `dotnet publish` and `dotnet run` commands for file-based apps, with smart up-to-date checks 
+of every C# file used to build the app (including `#include` and `#ref` directives, transitively), 
+making it optimal for quick iteration and agentic tools authoring and consumption.
+
 
 ## Usage
 
@@ -84,10 +88,10 @@ To force a fresh download for a remote ref, clean its bundle first:
 
 ```console
 # Clean the downloaded bundle for a remote ref (forces full download on next run)
-dnx go clean kzu/sandbox
+dnx go -- clean kzu/sandbox
 
 # Works for refs with @ref or :path too (the bundle for the ref is deleted entirely)
-dnx go clean kzu/sandbox@main:program.cs
+dnx go -- clean kzu/sandbox@main:program.cs
 ```
 
 Behavior follows the chosen command:
@@ -120,8 +124,8 @@ in a detached background process. Apps you run regularly are never affected.
 
 The main advantage of `go#` is **fast unchanged re-runs**. 
 The two core scenarios for `go#` file-based apps are:
-* While tweaking 👉 `dnx go dev app.cs` (optimized `dotnet run app.cs`)
-* When stable 👉 `dnx go app.cs` (optimized `dotnet publish app.cs; app[.exe]`)
+* While tweaking 👉 `dnx go -- dev app.cs` (optimized `dotnet run app.cs`)
+* When stable 👉 `dnx go -- app.cs` (optimized `dotnet publish app.cs; app[.exe]`)
 
 The numbers below showcase both scenarios, comparing `go#` to `dotnet run` and 
 `dotnet publish` for a file-based app with different combinations of `#include` and `#ref` directives.
