@@ -9,7 +9,7 @@ public static class GoArgs
 
     static string[]? forwardArgs;
 
-    /// <summary>Arguments stripped before CAF parsing; forward to dotnet and/or the target app via <see cref="Split"/>.</summary>
+    /// <summary>Arguments stripped before CAF parsing; forwarded to the target app.</summary>
     internal static string[] ForwardArgs => forwardArgs ?? [];
 
     /// <summary>
@@ -27,7 +27,18 @@ public static class GoArgs
             if (arg.StartsWith("--go-", StringComparison.OrdinalIgnoreCase))
             {
                 var name = arg[5..];
-                if (GoSwitchNames.Any(s => s.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                // Attached value forms: --go-r2r:true / --go-r2r=true
+                var sep = name.IndexOfAny([':', '=']);
+                if (sep >= 0)
+                {
+                    var baseName = name[..sep];
+                    if (GoSwitchNames.Any(s => s.Equals(baseName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.Add("--" + baseName.ToLowerInvariant() + name[sep..]);
+                        continue;
+                    }
+                }
+                else if (GoSwitchNames.Any(s => s.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 {
                     result.Add("--" + name.ToLowerInvariant());
                     continue;
@@ -36,7 +47,17 @@ public static class GoArgs
             else if (arg.StartsWith("--", StringComparison.Ordinal))
             {
                 var name = arg[2..];
-                if (GoSwitchNames.Any(s => s.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                var sep = name.IndexOfAny([':', '=']);
+                if (sep >= 0)
+                {
+                    var baseName = name[..sep];
+                    if (GoSwitchNames.Any(s => s.Equals(baseName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.Add("--" + baseName.ToLowerInvariant() + name[sep..]);
+                        continue;
+                    }
+                }
+                else if (GoSwitchNames.Any(s => s.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 {
                     result.Add("--" + name.ToLowerInvariant());
                     continue;
@@ -49,12 +70,8 @@ public static class GoArgs
 
     /// <summary>
     /// Splits raw invocation args into a CAF-safe slice (subcommand, input, go flags only)
-    /// and pass-through args for dotnet publish/run and the target app.
-    /// <para>
-    /// Under <c>dnx go</c>, the first <c>--</c> is go's dotnet/app separator — not a CAF escape.
-    /// Dotnet options like <c>/p:MyProp=true</c> or <c>-v:q</c> must not reach CAF or they are
-    /// rejected as unrecognized options.
-    /// </para>
+    /// and pass-through app arguments. Go options such as <c>--r2r</c>
+    /// stay in the CAF slice; every other trailing token becomes an app argument.
     /// </summary>
     internal static string[] PrepareCafArgs(string[] args)
     {
@@ -96,6 +113,7 @@ public static class GoArgs
         for (var i = index; i < args.Length; i++)
         {
             var arg = args[i];
+
             if (TryMatchGoFlag(arg, out var cafFlag))
             {
                 goFlags.Add(cafFlag);
@@ -142,57 +160,12 @@ public static class GoArgs
         return false;
     }
 
-    public static (string[] Dotnet, string[] App) Split(string[] extraArgs)
-    {
-        var separator = Array.IndexOf(extraArgs, "--");
-        if (separator < 0)
-            return ([], extraArgs);
-
-        return (
-            [.. extraArgs.AsSpan(0, separator)],
-            [.. extraArgs.AsSpan(separator + 1)]
-        );
-    }
-
     public static string[] ApplyPublishMode(string[] dotnetArgs, bool readyToRun)
         => readyToRun ? [.. ReadyToRunPublishArgs, .. dotnetArgs] : dotnetArgs;
 
-    public static string[] ApplyDefaultVerbosity(string[] dotnetArgs)
-        => HasVerbosityArg(dotnetArgs) ? dotnetArgs : [.. dotnetArgs, "-v:q"];
-
-    static bool HasVerbosityArg(IReadOnlyList<string> args)
-    {
-        for (var i = 0; i < args.Count; i++)
-        {
-            if (IsVerbosityArg(args[i]))
-                return true;
-        }
-
-        return false;
-    }
-
-    static bool IsVerbosityArg(string arg)
-    {
-        if (arg.Length < 2)
-            return false;
-
-        ReadOnlySpan<char> span = arg;
-        if (span[0] == '/')
-            span = span[1..];
-        else if (span.StartsWith("--", StringComparison.Ordinal))
-            span = span[2..];
-        else if (span[0] == '-')
-            span = span[1..];
-        else
-            return false;
-
-        if (span.StartsWith("v:", StringComparison.OrdinalIgnoreCase) ||
-            span.StartsWith("v=", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return span.Equals("v", StringComparison.OrdinalIgnoreCase) ||
-               span.Equals("verbosity", StringComparison.OrdinalIgnoreCase) ||
-               span.StartsWith("verbosity:", StringComparison.OrdinalIgnoreCase) ||
-               span.StartsWith("verbosity=", StringComparison.OrdinalIgnoreCase);
-    }
+    /// <summary>
+    /// Appends quiet MSBuild verbosity (<c>-v:quiet</c>) for the underlying <c>dotnet publish</c>/<c>dotnet run</c>.
+    /// </summary>
+    public static string[] ApplyVerbosity(string[] dotnetArgs)
+        => [.. dotnetArgs, "-v:quiet"];
 }

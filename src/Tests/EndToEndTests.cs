@@ -57,7 +57,7 @@ public class EndToEndTests
         {
             RunGo("clean", app);
 
-            var (exit, output) = RunGo(app, "--r2r", "/v:q", "--", "hello", "world");
+            var (exit, output) = RunGo(app, "--r2r", "hello", "world");
             Assert.Equal(0, exit);
             Assert.Contains("APP:hello|world", output);
             Assert.DoesNotContain("Build started", output);
@@ -108,15 +108,15 @@ public class EndToEndTests
         try
         {
             // warm-up populate (may emit build logs)
-            RunGo(remoteRef, "--", "-v:q");
+            RunGo(remoteRef);
 
             // two runs that should hit cache for identical clean output
-            var (exit1, output1) = RunGo(remoteRef, "--", "-v:q");
+            var (exit1, output1) = RunGo(remoteRef);
             File.WriteAllText(Path.Combine(scratch, "remote-run1.log"), output1);
             Assert.Equal(0, exit1);
             Assert.Contains("run.cs", output1);
 
-            var (exit2, output2) = RunGo(remoteRef, "--", "-v:q");
+            var (exit2, output2) = RunGo(remoteRef);
             File.WriteAllText(Path.Combine(scratch, "remote-run2.log"), output2);
             Assert.Equal(0, exit2);
             Assert.Contains("run.cs", output2);
@@ -143,14 +143,14 @@ public class EndToEndTests
         try
         {
             // warm-up
-            RunGo("dev", remoteRef, "--", "-v:q");
+            RunGo("dev", remoteRef);
 
-            var (exit1, output1) = RunGo("dev", remoteRef, "--", "-v:q");
+            var (exit1, output1) = RunGo("dev", remoteRef);
             File.WriteAllText(Path.Combine(scratch, "remote-dev1.log"), output1);
             Assert.Equal(0, exit1);
             Assert.Contains("run.cs", output1);
 
-            var (exit2, output2) = RunGo("dev", remoteRef, "--", "-v:q");
+            var (exit2, output2) = RunGo("dev", remoteRef);
             File.WriteAllText(Path.Combine(scratch, "remote-dev2.log"), output2);
             Assert.Equal(0, exit2);
             Assert.Contains("run.cs", output2);
@@ -272,7 +272,7 @@ public class EndToEndTests
             try { RunGo("clean", remoteRef); } catch { }
 
             // Warm-up download
-            var warm = RunGo(remoteRef, "--", "-v:q");
+            var warm = RunGo(remoteRef);
             Assert.Equal(0, warm.ExitCode);
             Assert.Contains("run.cs", warm.Output);
 
@@ -297,7 +297,7 @@ public class EndToEndTests
             // Second run (rapid): always performs ETag check; on 304 we touch *only* the root dir,
             // individual source files are not touched.
             var mtimeBefore = srcInfo.LastWriteTimeUtc;
-            var (exit2, out2) = RunGo(remoteRef, "--", "-v:q");
+            var (exit2, out2) = RunGo(remoteRef);
             File.WriteAllText(logPath, "SECOND-RUN:\n" + out2);
             Assert.Equal(0, exit2);
             Assert.Contains("run.cs", out2);
@@ -319,7 +319,7 @@ public class EndToEndTests
             // Immediate third run: same, no source mtime change.
             var mtimeBeforeImm = srcInfo.LastWriteTimeUtc;
             var rootBeforeImm = rootInfo.LastWriteTimeUtc;
-            var (exitImm, outImm) = RunGo(remoteRef, "--", "-v:q");
+            var (exitImm, outImm) = RunGo(remoteRef);
             File.AppendAllText(logPath, "IMMEDIATE:\n" + outImm);
             Assert.Equal(0, exitImm);
 

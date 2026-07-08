@@ -20,13 +20,10 @@ It shines for:
 
 ```console
 # Run a file
-dnx go app.cs
+dnx go -- app.cs
 
 # Pass arguments to your app
-dnx go app.cs -- arg1 arg2
-
-# Pass arguments to the underlying `dotnet publish`
-dnx go app.cs /p:MyProp=true -- arg1 arg2
+dnx go -- app.cs arg1 arg2
 ```
 
 The default mode publishes the app with native AOT and then runs the resulting executable, 
@@ -37,10 +34,10 @@ Use `--r2r` when your app needs more dynamic .NET features (reflection, dynamic 
 that native AOT does not support, while still keeping most publish optimizations:
 
 ```console
-dnx go app.cs --r2r
+dnx go -- app.cs --r2r
 
 # Pass arguments to your app
-dnx go app.cs --r2r -- arg1 arg2
+dnx go -- app.cs --r2r arg1 arg2
 ```
 
 This publishes with `/p:PublishAot=false` and `/p:PublishReadyToRun=true`. 
@@ -51,13 +48,10 @@ and runs the app directly from the build output without the optimizations
 applied by dotnet to published executables (i.e. AOT, RID-specific optimizations):
 
 ```console
-dnx go dev app.cs
+dnx go -- dev app.cs
 
 # Pass arguments to your app
-dnx go dev app.cs -- arg1 arg2
-
-# Pass arguments to the underlying `dotnet run`
-dnx go dev app.cs /p:Configuration=Release -- arg1 arg2
+dnx go -- dev app.cs arg1 arg2
 ```
 
 ## Remote references
@@ -67,15 +61,15 @@ the content (when needed) and treat the resulting local file as the entry point:
 
 ```console
 # Run from a public repo (defaults to github.com, main + program.cs or first .cs)
-dnx go kzu/sandbox
+dnx go -- kzu/sandbox
 
 # Specific branch/tag and file
-dnx go kzu/sandbox@v1.2.3:src/hello.cs
+dnx go -- kzu/sandbox@v1.2.3:src/hello.cs
 
 # Full host (GitHub, Gist, GitLab, Azure DevOps)
-dnx go github.com/kzu/sandbox@main:hello.cs
-dnx go gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
-dnx go gitlab.com/kzu/runcs/-/blob/main/program.cs
+dnx go -- github.com/kzu/sandbox@main:hello.cs
+dnx go -- gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
+dnx go -- gitlab.com/kzu/runcs/-/blob/main/program.cs
 ```
 
 The first argument is resolved by first checking if it is a local file (`File.Exists`).
@@ -101,7 +95,7 @@ Behavior follows the chosen command:
 * Default command: downloads (if needed) then `dotnet publish` + execute (AOT by default).
 * `dev` command: downloads (if needed) then `dotnet run` for fast iteration.
 
-Arguments after `--` (or all trailing args) are forwarded exactly as with local files.
+Trailing arguments are passed to the app, the same as with local files.
 
 ## Cache and cleaning
 
@@ -110,13 +104,13 @@ user's temp area, which is what makes unchanged re-runs near-instant.
 
 ```console
 # Delete the cached artifacts for a single app (next run rebuilds)
-dnx go clean app.cs
+dnx go -- clean app.cs
 
 # Delete the downloaded bundle for a remote ref (next run re-downloads; :path ignored)
-dnx go clean owner/repo[@ref][:path]
+dnx go -- clean owner/repo[@ref][:path]
 
 # Delete the cached artifacts for all apps
-dnx go clean --all
+dnx go -- clean --all
 ```
 
 Unused download locations and published binaries are periodically cleaned up
