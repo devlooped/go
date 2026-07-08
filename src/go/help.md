@@ -11,6 +11,8 @@ Options:
   --r2r    Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations.
 
 Commands:
-  clean    Deletes cached publish artifacts for a file-based .NET app, or for a remote ref.
-  dev      Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
+  clean           Deletes cached publish artifacts for a file-based .NET app, or for a remote ref.
+  dev             Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
+  skill           Installs the bundled go-sharp agent skill (SKILL.md) for agent tooling.
+  skill remove    Removes a previously installed go-sharp agent skill.
 ```
