@@ -123,6 +123,33 @@ dnx go -- clean --all
 Unused download locations and published binaries are periodically cleaned up
 in a detached background process. Apps you run regularly are never affected.
 
+## Agent skill
+
+`go#` ships a bundled [agent skill](skills/go-sharp/SKILL.md) that teaches coding
+agents how to author and run file-based C# apps with `dnx go`. Install it for
+global use or into the current repo:
+
+```console
+# Install to ~/.agents/skills/go-sharp/SKILL.md (prompts for confirmation)
+dnx go -- skill
+
+# Install for the current project under .agents/skills/go-sharp/SKILL.md
+dnx go -- skill .
+
+# Skip the confirmation prompt
+dnx go -- skill -y
+dnx go -- skill . --yes
+
+# Remove a previously installed skill (same path rules as install)
+dnx go -- skill remove
+dnx go -- skill remove .
+dnx go -- skill remove -y
+```
+
+With no directory, the skill is written under the user home directory. Pass a
+base directory (commonly `.`) to install under that location instead. Either
+form overwrites an existing install.
+
 ## Performance
 
 The main advantage of `go#` is **fast unchanged re-runs**. 
