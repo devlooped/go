@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.0.0](https://github.com/devlooped/go-sharp/tree/v1.0.0) (2026-07-08)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0-beta...v1.0.0)
+
 ## [v1.0.0-beta](https://github.com/devlooped/go-sharp/tree/v1.0.0-beta) (2026-07-08)
 
 [Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0-alpha...v1.0.0-beta)
@@ -35,7 +39,7 @@
 
 ## [v0.9.0](https://github.com/devlooped/go-sharp/tree/v0.9.0) (2026-07-07)
 
-[Full Changelog](https://github.com/devlooped/go-sharp/compare/ace053e6b074e06197461817b16bd6056d54fa6c...v0.9.0)
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v0.1.0...v0.9.0)
 
 :sparkles: Implemented enhancements:
 
@@ -50,6 +54,10 @@
 - Add end-to-end tests for stamp-based cache hits [\#12](https://github.com/devlooped/go-sharp/pull/12) (@kzu)
 - Advisor/001 harden cache cleanup [\#11](https://github.com/devlooped/go-sharp/pull/11) (@kzu)
 - bench: add performance samples and simplified report [\#7](https://github.com/devlooped/go-sharp/pull/7) (@kzu)
+
+## [v0.1.0](https://github.com/devlooped/go-sharp/tree/v0.1.0) (2026-07-04)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/ace053e6b074e06197461817b16bd6056d54fa6c...v0.1.0)
 
 
 
