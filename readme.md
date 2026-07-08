@@ -18,6 +18,10 @@ It shines for:
 - Fast iteration with smart caching (subsequent runs are near-instant when nothing changed)
 - Easy sharing of small utilities (just a `.cs` file **or** a remote ref like `owner/repo[@ref][:path]`)
 
+`go#` optimizes the underlying `dotnet publish` and `dotnet run` commands for file-based apps, with smart up-to-date checks 
+of every C# file used to build the app (including `#include` and `#ref` directives, transitively), 
+making it optimal for quick iteration and agentic tools authoring and consumption.
+
 
 ## Usage
 
