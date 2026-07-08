@@ -16,7 +16,7 @@ await app.RunAsync(GoArgs.PrepareCafArgs(args));
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. </param>
 /// <param name="gdbg">Launch debugger before executing.</param>
-/// <param name="args">Arguments to pass to the app, or to dotnet publish and the app, separated by --.</param>
+/// <param name="args">Arguments to pass to the app.</param>
 static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] args)
 {
     if (gdbg)
@@ -56,7 +56,7 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidd
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run).</param>
 /// <param name="gdbg">Launch debugger before executing.</param>
-/// <param name="args">Arguments to pass to the app, or to dotnet run and the app, separated by --.</param>
+/// <param name="args">Arguments to pass to the app.</param>
 static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] args)
 {
     if (gdbg)
@@ -66,7 +66,7 @@ static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = fal
     if (source is null)
         return 1;
 
-    var context = Prepare(source, GoArgs.ForwardArgs);
+    var context = Prepare(source, GoArgs.ForwardArgs, readyToRun: false);
     if (context is null)
         return 1;
 
@@ -184,7 +184,7 @@ static async Task<int> ExecuteAppAsync(string publishDir, Func<Task<int>> execut
 static bool TryResolveEntryPoint(string input, out string effectiveCs, out string publishDir, out string stamp)
     => RemoteSourceResolver.TryResolveEntryPoint(input, out effectiveCs, out publishDir, out stamp);
 
-static (string Dotnet, string Cs, string PublishDir, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] extraArgs, bool readyToRun = false)
+static (string Dotnet, string Cs, string PublishDir, string Stamp, string Targets, PublishMode Mode, string[] DotnetArgs, string[] AppArgs)? Prepare(string input, string[] appArgs, bool readyToRun = false)
 {
     var dotnet = DotnetMuxer.Path?.FullName;
     if (dotnet is null)
@@ -196,10 +196,8 @@ static (string Dotnet, string Cs, string PublishDir, string Stamp, string Target
     if (!TryResolveEntryPoint(input, out var cs, out var publishDir, out var stamp))
         return null;
 
-    var (dotnetArgs, appArgs) = GoArgs.Split(extraArgs);
     var mode = readyToRun ? PublishMode.R2r : PublishMode.Aot;
-    dotnetArgs = GoArgs.ApplyPublishMode(dotnetArgs, readyToRun);
-    dotnetArgs = GoArgs.ApplyDefaultVerbosity(dotnetArgs);
+    var dotnetArgs = GoArgs.ApplyVerbosity(GoArgs.ApplyPublishMode([], readyToRun));
     var targets = Path.Combine(AppContext.BaseDirectory, "go.targets");
 
     return (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs);

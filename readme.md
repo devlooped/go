@@ -27,14 +27,10 @@ making it optimal for quick iteration and agentic tools authoring and consumptio
 
 ```console
 # Run a file
-dnx go app.cs
+dnx go -- app.cs
 
 # Pass arguments to your app
-dnx go app.cs -- arg1 arg2
-
-# Pass arguments to the underlying `dotnet publish`
-# Args after initial -- are for dotnet publish, after second -- are for your app
-dnx go app.cs -- /p:MyProp=true /v:quiet -- arg1 arg2
+dnx go -- app.cs arg1 arg2
 ```
 
 The default mode publishes the app with native AOT and then runs the resulting executable, 
@@ -45,7 +41,10 @@ Use `--r2r` when your app needs more dynamic .NET features (reflection, dynamic 
 that native AOT does not support, while still keeping most publish optimizations:
 
 ```console
-dnx go app.cs -- --r2r -- arg1 arg2
+dnx go -- app.cs --r2r
+
+# Pass arguments to your app
+dnx go -- app.cs --r2r arg1 arg2
 ```
 
 This publishes with `/p:PublishAot=false` and `/p:PublishReadyToRun=true`. 
@@ -56,13 +55,10 @@ and runs the app directly from the build output without the optimizations
 applied by dotnet to published executables (i.e. AOT, RID-specific optimizations):
 
 ```console
-dnx go dev -- app.cs
+dnx go -- dev app.cs
 
 # Pass arguments to your app
-dnx go dev -- app.cs arg1 arg2
-
-# Pass arguments to the underlying `dotnet run`
-dnx go dev -- app.cs /p:Configuration=Release -- arg1 arg2
+dnx go -- dev app.cs arg1 arg2
 ```
 
 ## Remote references
@@ -106,7 +102,7 @@ Behavior follows the chosen command:
 * Default command: downloads (if needed) then `dotnet publish` + execute (AOT by default).
 * `dev` command: downloads (if needed) then `dotnet run` for fast iteration.
 
-Arguments after `--` (or all trailing args) are forwarded exactly as with local files.
+Trailing arguments are passed to the app, the same as with local files.
 
 ## Cache and cleaning
 
