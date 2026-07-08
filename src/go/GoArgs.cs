@@ -156,4 +156,43 @@ public static class GoArgs
 
     public static string[] ApplyPublishMode(string[] dotnetArgs, bool readyToRun)
         => readyToRun ? [.. ReadyToRunPublishArgs, .. dotnetArgs] : dotnetArgs;
+
+    public static string[] ApplyDefaultVerbosity(string[] dotnetArgs)
+        => HasVerbosityArg(dotnetArgs) ? dotnetArgs : [.. dotnetArgs, "-v:q"];
+
+    static bool HasVerbosityArg(IReadOnlyList<string> args)
+    {
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (IsVerbosityArg(args[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    static bool IsVerbosityArg(string arg)
+    {
+        if (arg.Length < 2)
+            return false;
+
+        ReadOnlySpan<char> span = arg;
+        if (span[0] == '/')
+            span = span[1..];
+        else if (span.StartsWith("--", StringComparison.Ordinal))
+            span = span[2..];
+        else if (span[0] == '-')
+            span = span[1..];
+        else
+            return false;
+
+        if (span.StartsWith("v:", StringComparison.OrdinalIgnoreCase) ||
+            span.StartsWith("v=", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return span.Equals("v", StringComparison.OrdinalIgnoreCase) ||
+               span.Equals("verbosity", StringComparison.OrdinalIgnoreCase) ||
+               span.StartsWith("verbosity:", StringComparison.OrdinalIgnoreCase) ||
+               span.StartsWith("verbosity=", StringComparison.OrdinalIgnoreCase);
+    }
 }
