@@ -199,6 +199,7 @@ static (string Dotnet, string Cs, string PublishDir, string Stamp, string Target
     var (dotnetArgs, appArgs) = GoArgs.Split(extraArgs);
     var mode = readyToRun ? PublishMode.R2r : PublishMode.Aot;
     dotnetArgs = GoArgs.ApplyPublishMode(dotnetArgs, readyToRun);
+    dotnetArgs = GoArgs.ApplyDefaultVerbosity(dotnetArgs);
     var targets = Path.Combine(AppContext.BaseDirectory, "go.targets");
 
     return (dotnet, cs, publishDir, stamp, targets, mode, dotnetArgs, appArgs);

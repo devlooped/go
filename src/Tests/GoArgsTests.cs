@@ -57,6 +57,23 @@ public class GoArgsTests
     }
 
     [Fact]
+    public void ApplyDefaultVerbosity_appends_quiet_when_missing()
+    {
+        Assert.Equal(["-v:q"], GoArgs.ApplyDefaultVerbosity([]));
+        Assert.Equal(["-c", "Release", "-v:q"], GoArgs.ApplyDefaultVerbosity(["-c", "Release"]));
+    }
+
+    [Fact]
+    public void ApplyDefaultVerbosity_leaves_args_unchanged_when_verbosity_present()
+    {
+        Assert.Equal(["-v:q"], GoArgs.ApplyDefaultVerbosity(["-v:q"]));
+        Assert.Equal(["-v", "q"], GoArgs.ApplyDefaultVerbosity(["-v", "q"]));
+        Assert.Equal(["--verbosity", "quiet"], GoArgs.ApplyDefaultVerbosity(["--verbosity", "quiet"]));
+        Assert.Equal(["--verbosity:diag"], GoArgs.ApplyDefaultVerbosity(["--verbosity:diag"]));
+        Assert.Equal(["/v:q"], GoArgs.ApplyDefaultVerbosity(["/v:q"]));
+    }
+
+    [Fact]
     public void Normalize_maps_go_prefixed_switches_to_bare_forms()
     {
         var normalized = GoArgs.Normalize(["--go-debug", "--go-r2r", "owner/repo", "--", "apparg"]);
