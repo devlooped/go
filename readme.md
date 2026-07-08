@@ -1,4 +1,5 @@
-# go#
+![Icon](https://raw.githubusercontent.com/devlooped/go/main/assets/img/icon.png) go#
+============
 
 [![Version](https://img.shields.io/nuget/vpre/go.svg?color=royalblue)](https://www.nuget.org/packages/go)
 [![Downloads](https://img.shields.io/nuget/dt/go.svg?color=darkmagenta)](https://www.nuget.org/packages/go)

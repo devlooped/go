@@ -8,12 +8,15 @@
     <RootNamespace>Devlooped</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
     <Description>An optimized runner for C# file-based apps.</Description>
     <PackageId>go</PackageId>
+    
     <ToolCommandName>dotnet-go</ToolCommandName>
     <PackAsTool>true</PackAsTool>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageTags>dotnet dotnet-tool</PackageTags>
     <PackageProjectUrl>https://github.com/devlooped/go</PackageProjectUrl>
 
@@ -41,6 +44,7 @@
   <ItemGroup>
     <Content Include="go.targets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="readme.md" PackagePath="readme.md" Pack="true" />
+    <None Include="icon.png" PackagePath="\" Pack="true" />
     <None Include="Properties\*.*" />
   </ItemGroup>
 
