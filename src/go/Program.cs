@@ -10,6 +10,7 @@ app.Add("", RunAsync);
 app.Add("dev", DevAsync);
 app.Add("clean", CleanAsync);
 app.Add<CleanupCommands>();
+app.Add<SkillCommands>();
 await app.RunAsync(GoArgs.PrepareCafArgs(args));
 
 /// <summary>Runs a file-based .NET app from a .cs entrypoint.</summary>

@@ -5,7 +5,7 @@ public static class GoArgs
     public static readonly string[] ReadyToRunPublishArgs = ["/p:PublishAot=false", "/p:PublishReadyToRun=true"];
 
     static readonly string[] GoSwitchNames = ["debug", "r2r", "gdbg"];
-    static readonly HashSet<string> Subcommands = new(StringComparer.OrdinalIgnoreCase) { "dev", "clean" };
+    static readonly HashSet<string> Subcommands = new(StringComparer.OrdinalIgnoreCase) { "dev", "clean", "skill" };
 
     static string[]? forwardArgs;
 
@@ -92,11 +92,12 @@ public static class GoArgs
         string? subcommand = null;
         if (Subcommands.Contains(args[0]))
         {
-            subcommand = args[0].Equals("dev", StringComparison.OrdinalIgnoreCase) ? "dev" : "clean";
+            subcommand = args[0].ToLowerInvariant();
             index = 1;
         }
 
-        if (subcommand == "clean")
+        // clean / skill (and nested skill remove) own their args; do not split for app forwarding.
+        if (subcommand is "clean" or "skill")
         {
             forwardArgs = [];
             return args;
