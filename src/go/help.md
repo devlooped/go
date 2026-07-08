@@ -4,7 +4,8 @@ Usage: [command] [arguments...] [options...] [-h|--help] [--version]
 Runs a file-based .NET app from a .cs entrypoint.
 
 Arguments:
-  [0] <string>    Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).
+  [0] <string>      Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).
+  [1] <string[]>    Arguments to pass to the app, or to dotnet publish and the app, separated by --.
 
 Options:
   --r2r    Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations.

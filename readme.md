@@ -30,14 +30,11 @@ making it optimal for quick iteration and agentic tools authoring and consumptio
 dnx go app.cs
 
 # Pass arguments to your app
-dnx go app.cs arg1 arg2
-
-# Also works
 dnx go app.cs -- arg1 arg2
 
 # Pass arguments to the underlying `dotnet publish`
-# First -- is for dotnet publish, second -- is for your app
-dnx go app.cs -- /p:MyProp=true -- arg1 arg2
+# Args after initial -- are for dotnet publish, after second -- are for your app
+dnx go app.cs -- /p:MyProp=true /v:quiet -- arg1 arg2
 ```
 
 The default mode publishes the app with native AOT and then runs the resulting executable, 
@@ -48,13 +45,7 @@ Use `--r2r` when your app needs more dynamic .NET features (reflection, dynamic 
 that native AOT does not support, while still keeping most publish optimizations:
 
 ```console
-dnx go app.cs --r2r
-
-# Pass arguments to your app
-dnx go app.cs --r2r arg1 arg2
-
-# Also works
-dnx go app.cs --r2r -- arg1 arg2
+dnx go app.cs -- --r2r -- arg1 arg2
 ```
 
 This publishes with `/p:PublishAot=false` and `/p:PublishReadyToRun=true`. 
@@ -65,13 +56,13 @@ and runs the app directly from the build output without the optimizations
 applied by dotnet to published executables (i.e. AOT, RID-specific optimizations):
 
 ```console
-dnx go dev app.cs
+dnx go dev -- app.cs
 
 # Pass arguments to your app
-dnx go dev app.cs -- arg1 arg2
+dnx go dev -- app.cs arg1 arg2
 
 # Pass arguments to the underlying `dotnet run`
-dnx go dev app.cs /p:Configuration=Release -- arg1 arg2
+dnx go dev -- app.cs /p:Configuration=Release -- arg1 arg2
 ```
 
 ## Remote references
@@ -81,15 +72,15 @@ the content (when needed) and treat the resulting local file as the entry point:
 
 ```console
 # Run from a public repo (defaults to github.com, main + program.cs or first .cs)
-dnx go kzu/sandbox
+dnx go -- kzu/sandbox
 
 # Specific branch/tag and file
-dnx go kzu/sandbox@v1.2.3:src/hello.cs
+dnx go -- kzu/sandbox@v1.2.3:src/hello.cs
 
 # Full host (GitHub, Gist, GitLab, Azure DevOps)
-dnx go github.com/kzu/sandbox@main:hello.cs
-dnx go gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
-dnx go gitlab.com/kzu/runcs/-/blob/main/program.cs
+dnx go -- github.com/kzu/sandbox@main:hello.cs
+dnx go -- gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
+dnx go -- gitlab.com/kzu/runcs/-/blob/main/program.cs
 ```
 
 The first argument is resolved by first checking if it is a local file (`File.Exists`).
@@ -104,10 +95,10 @@ To force a fresh download for a remote ref, clean its bundle first:
 
 ```console
 # Clean the downloaded bundle for a remote ref (forces full download on next run)
-dnx go clean kzu/sandbox
+dnx go -- clean kzu/sandbox
 
 # Works for refs with @ref or :path too (the bundle for the ref is deleted entirely)
-dnx go clean kzu/sandbox@main:program.cs
+dnx go -- clean kzu/sandbox@main:program.cs
 ```
 
 Behavior follows the chosen command:
@@ -124,13 +115,13 @@ user's temp area, which is what makes unchanged re-runs near-instant.
 
 ```console
 # Delete the cached artifacts for a single app (next run rebuilds)
-dnx go clean app.cs
+dnx go -- clean app.cs
 
 # Delete the downloaded bundle for a remote ref (next run re-downloads; :path ignored)
-dnx go clean owner/repo[@ref][:path]
+dnx go -- clean owner/repo[@ref][:path]
 
 # Delete the cached artifacts for all apps
-dnx go clean --all
+dnx go -- clean --all
 ```
 
 Unused download locations and published binaries are periodically cleaned up
@@ -140,8 +131,8 @@ in a detached background process. Apps you run regularly are never affected.
 
 The main advantage of `go#` is **fast unchanged re-runs**. 
 The two core scenarios for `go#` file-based apps are:
-* While tweaking 👉 `dnx go dev app.cs` (optimized `dotnet run app.cs`)
-* When stable 👉 `dnx go app.cs` (optimized `dotnet publish app.cs; app[.exe]`)
+* While tweaking 👉 `dnx go -- dev app.cs` (optimized `dotnet run app.cs`)
+* When stable 👉 `dnx go -- app.cs` (optimized `dotnet publish app.cs; app[.exe]`)
 
 The numbers below showcase both scenarios, comparing `go#` to `dotnet run` and 
 `dotnet publish` for a file-based app with different combinations of `#include` and `#ref` directives.

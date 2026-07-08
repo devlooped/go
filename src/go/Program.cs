@@ -2,6 +2,9 @@ using System.Text;
 using ConsoleAppFramework;
 using Devlooped;
 
+if (Environment.GetEnvironmentVariable("GO_DEBUG") == "1")
+    System.Diagnostics.Debugger.Launch();
+
 var app = ConsoleApp.Create();
 app.Add("", RunAsync);
 app.Add("dev", DevAsync);
@@ -13,7 +16,8 @@ await app.RunAsync(GoArgs.PrepareCafArgs(args));
 /// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
 /// <param name="r2r">Publish with ReadyToRun instead of native AOT; supports more dynamic .NET features while keeping most publish optimizations. </param>
 /// <param name="gdbg">Launch debugger before executing.</param>
-static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false)
+/// <param name="args">Arguments to pass to the app, or to dotnet publish and the app, separated by --.</param>
+static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] args)
 {
     if (gdbg)
         System.Diagnostics.Debugger.Launch();
@@ -46,6 +50,36 @@ static async Task<int> RunAsync([Argument] string input, bool r2r = false, [Hidd
     }
 
     return await ExecuteAppAsync(publishDir, () => ProcessRunner.RunAsync(state.App, appArgs));
+}
+
+/// <summary>Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.</summary>
+/// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
+/// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run).</param>
+/// <param name="gdbg">Launch debugger before executing.</param>
+/// <param name="args">Arguments to pass to the app, or to dotnet run and the app, separated by --.</param>
+static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false, [Argument] params string[] args)
+{
+    if (gdbg)
+        System.Diagnostics.Debugger.Launch();
+
+    var source = await GetEffectiveSourceAsync(input);
+    if (source is null)
+        return 1;
+
+    var context = Prepare(source, GoArgs.ForwardArgs);
+    if (context is null)
+        return 1;
+
+    var (dotnet, cs, publishDir, stamp, targets, _, dotnetArgs, appArgs) = context.Value;
+
+    if (BuildState.TryRead(stamp, out var state) &&
+        state.Bin is not null &&
+        BuildManager.IsUpToDate(state, state.Bin))
+        return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetExecAsync(dotnet, state.Bin, appArgs));
+
+    File.WriteAllText(stamp, string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+    return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetRunAsync(dotnet, cs, stamp, targets, dotnetArgs, appArgs));
 }
 
 /// <summary>Deletes cached publish artifacts for a file-based .NET app, or for a remote ref.</summary>
@@ -136,35 +170,6 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
         return 1;
 
     return AppCleaner.Clean(pdir, stmp, cs);
-}
-
-/// <summary>Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.</summary>
-/// <param name="input">Path to an existing .cs file or remote ref (owner/repo[@ref][:path]).</param>
-/// <param name="r2r">Accepted for consistency (ignored for dev which uses dotnet run).</param>
-/// <param name="gdbg">Launch debugger before executing.</param>
-static async Task<int> DevAsync([Argument] string input, [Hidden] bool r2r = false, [Hidden] bool gdbg = false)
-{
-    if (gdbg)
-        System.Diagnostics.Debugger.Launch();
-
-    var source = await GetEffectiveSourceAsync(input);
-    if (source is null)
-        return 1;
-
-    var context = Prepare(source, GoArgs.ForwardArgs);
-    if (context is null)
-        return 1;
-
-    var (dotnet, cs, publishDir, stamp, targets, _, dotnetArgs, appArgs) = context.Value;
-
-    if (BuildState.TryRead(stamp, out var state) &&
-        state.Bin is not null &&
-        BuildManager.IsUpToDate(state, state.Bin))
-        return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetExecAsync(dotnet, state.Bin, appArgs));
-
-    File.WriteAllText(stamp, string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-
-    return await ExecuteAppAsync(publishDir, () => ProcessRunner.DotnetRunAsync(dotnet, cs, stamp, targets, dotnetArgs, appArgs));
 }
 
 static async Task<int> ExecuteAppAsync(string publishDir, Func<Task<int>> execute)

@@ -1,4 +1,4 @@
 #!/usr/bin/env dotnet
 #:property TargetFramework=net10.0
 
-Console.WriteLine("hello from go");
+Console.WriteLine("hello from go: " + string.Join("|", args));
