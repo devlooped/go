@@ -8,6 +8,8 @@ license: MIT
 
 `go#` runs `.cs` files like scripts with the full .NET SDK (packages, multi-file composition, AOT publish). It optimizes `dotnet publish` / `dotnet run` with smart up-to-date checks across every C# input (including `#:include` and `#:ref`, transitively).
 
+> go# == dnx go
+
 **Always invoke via `dnx go`.** Do not use shebangs or direct `./app.cs` execution.
 
 | Phase | Command | Behavior |
