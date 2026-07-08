@@ -1,39 +1,55 @@
 # Changelog
 
-## [v1.0.0-alpha](https://github.com/devlooped/go/tree/v1.0.0-alpha) (2026-07-07)
+## [v1.0.0-beta](https://github.com/devlooped/go-sharp/tree/v1.0.0-beta) (2026-07-08)
 
-[Full Changelog](https://github.com/devlooped/go/compare/v0.9.1...v1.0.0-alpha)
-
-:sparkles: Implemented enhancements:
-
-- Support `go clean <remote-ref>` \(bundle + per-path publishes\) [\#20](https://github.com/devlooped/go/pull/20) (@kzu)
-- Ref-based remote download support [\#17](https://github.com/devlooped/go/pull/17) (@kzu)
-
-:twisted_rightwards_arrows: Merged:
-
-- feat: always ETag revalidate remote refs + consolidate entry/etag into bundle go.toml [\#19](https://github.com/devlooped/go/pull/19) (@kzu)
-
-## [v0.9.1](https://github.com/devlooped/go/tree/v0.9.1) (2026-07-07)
-
-[Full Changelog](https://github.com/devlooped/go/compare/v0.9.0...v0.9.1)
-
-## [v0.9.0](https://github.com/devlooped/go/tree/v0.9.0) (2026-07-07)
-
-[Full Changelog](https://github.com/devlooped/go/compare/ace053e6b074e06197461817b16bd6056d54fa6c...v0.9.0)
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0-alpha...v1.0.0-beta)
 
 :sparkles: Implemented enhancements:
 
-- Document cache cleaning and automatic cleanup [\#14](https://github.com/devlooped/go/pull/14) (@kzu)
-- Add 'clean --all' to wipe all cached apps [\#13](https://github.com/devlooped/go/pull/13) (@kzu)
-- Add 'clean' command and automatic cleanup of stale caches [\#10](https://github.com/devlooped/go/pull/10) (@kzu)
-- Add --r2r publish mode with unified stamp caching [\#8](https://github.com/devlooped/go/pull/8) (@kzu)
-- Implement `go` runner for .NET file-based apps with fast incremental rebuilds [\#5](https://github.com/devlooped/go/pull/5) (@kzu)
+- Add skill install/remove commands for bundled go-sharp SKILL.md [\#29](https://github.com/devlooped/go-sharp/pull/29) (@kzu)
+- Add go\# agent skill \(SKILL.md\) [\#28](https://github.com/devlooped/go-sharp/pull/28) (@kzu)
+- Simplify args: app-only passthrough, always quiet MSBuild [\#27](https://github.com/devlooped/go-sharp/pull/27) (@kzu)
+- Default dotnet publish/run to quiet verbosity [\#26](https://github.com/devlooped/go-sharp/pull/26) (@kzu)
+- Run dotnet clean when cleaning remote refs and local apps [\#23](https://github.com/devlooped/go-sharp/pull/23) (@kzu)
 
 :twisted_rightwards_arrows: Merged:
 
-- Add end-to-end tests for stamp-based cache hits [\#12](https://github.com/devlooped/go/pull/12) (@kzu)
-- Advisor/001 harden cache cleanup [\#11](https://github.com/devlooped/go/pull/11) (@kzu)
-- bench: add performance samples and simplified report [\#7](https://github.com/devlooped/go/pull/7) (@kzu)
+- Strip dotnet/app args before CAF parsing [\#22](https://github.com/devlooped/go-sharp/pull/22) (@kzu)
+
+## [v1.0.0-alpha](https://github.com/devlooped/go-sharp/tree/v1.0.0-alpha) (2026-07-07)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v0.9.1...v1.0.0-alpha)
+
+:sparkles: Implemented enhancements:
+
+- Support `go clean <remote-ref>` \(bundle + per-path publishes\) [\#20](https://github.com/devlooped/go-sharp/pull/20) (@kzu)
+- Ref-based remote download support [\#17](https://github.com/devlooped/go-sharp/pull/17) (@kzu)
+
+:twisted_rightwards_arrows: Merged:
+
+- feat: always ETag revalidate remote refs + consolidate entry/etag into bundle go.toml [\#19](https://github.com/devlooped/go-sharp/pull/19) (@kzu)
+
+## [v0.9.1](https://github.com/devlooped/go-sharp/tree/v0.9.1) (2026-07-07)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v0.9.0...v0.9.1)
+
+## [v0.9.0](https://github.com/devlooped/go-sharp/tree/v0.9.0) (2026-07-07)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/ace053e6b074e06197461817b16bd6056d54fa6c...v0.9.0)
+
+:sparkles: Implemented enhancements:
+
+- Document cache cleaning and automatic cleanup [\#14](https://github.com/devlooped/go-sharp/pull/14) (@kzu)
+- Add 'clean --all' to wipe all cached apps [\#13](https://github.com/devlooped/go-sharp/pull/13) (@kzu)
+- Add 'clean' command and automatic cleanup of stale caches [\#10](https://github.com/devlooped/go-sharp/pull/10) (@kzu)
+- Add --r2r publish mode with unified stamp caching [\#8](https://github.com/devlooped/go-sharp/pull/8) (@kzu)
+- Implement `go` runner for .NET file-based apps with fast incremental rebuilds [\#5](https://github.com/devlooped/go-sharp/pull/5) (@kzu)
+
+:twisted_rightwards_arrows: Merged:
+
+- Add end-to-end tests for stamp-based cache hits [\#12](https://github.com/devlooped/go-sharp/pull/12) (@kzu)
+- Advisor/001 harden cache cleanup [\#11](https://github.com/devlooped/go-sharp/pull/11) (@kzu)
+- bench: add performance samples and simplified report [\#7](https://github.com/devlooped/go-sharp/pull/7) (@kzu)
 
 
 
