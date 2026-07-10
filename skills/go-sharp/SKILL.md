@@ -16,6 +16,7 @@ license: MIT
 |-------|---------|----------|
 | **Tweaking / evolving** | `dnx go -- dev app.cs` | Optimized `dotnet run` + up-to-date checks; skip publish/AOT |
 | **Stable (exclusive)** | `dnx go -- app.cs` | Optimized `dotnet publish` (native AOT by default) + run the binary |
+| **Prerequisites** | `dnx go -- check` | Verifies the native C/C++ toolchain needed for AOT publishes |
 
 Once the script is stable, use **`dnx go -- app.cs` only**—not `dev`, not plain `dotnet app.cs`.
 
@@ -50,6 +51,26 @@ Run `dotnet --version`. File-based apps need **.NET 10+**. `#:include`, `#:exclu
 ```bash
 dnx go -- --help
 ```
+
+#### Native toolchain (AOT publishes)
+
+The **stable** path (`dnx go -- app.cs`) publishes with **native AOT** by default and needs a platform C/C++ linker. `dev` and `--r2r` do **not** require it.
+
+Verify before relying on AOT (or when publish fails with a platform linker / VC++ error):
+
+```bash
+dnx go -- check
+```
+
+If the check fails, install the tools for your OS and re-run `check`:
+
+| OS | Fix |
+|----|-----|
+| **Windows** | `dnx vs -- install --passive --sku:build` |
+| **Ubuntu / Debian** | `sudo apt-get install -y build-essential` |
+| **macOS** | `xcode-select --install` |
+
+Typical failure without tools: `Platform linker ('clang' or 'gcc') not found` (Linux/macOS) or missing Visual C++ build tools (Windows).
 
 ### Step 2: Write the app file
 
@@ -318,6 +339,7 @@ partial class AppJsonContext : JsonSerializerContext;
 
 - [ ] `dotnet --version` reports 10.0 or later
 - [ ] Multi-file `#:include` / `#:exclude` only if SDK is 10.0.300 or later
+- [ ] For default (AOT) publish: `dnx go -- check` succeeds
 - [ ] While iterating: `dnx go -- dev app.cs` produces the expected result
 - [ ] After the last successful edit: `dnx go -- app.cs` works, and **further runs use this form only**
 - [ ] App arguments are not confused with go flags (`--r2r` applies to go, then app args)
@@ -332,7 +354,8 @@ partial class AppJsonContext : JsonSerializerContext;
 | Using `dotnet app.cs` for day-to-day runs | Use `dnx go -- app.cs` (stable) or `dnx go -- dev app.cs` (tweaking) |
 | Staying on `dev` after the script is done | Switch to `dnx go -- app.cs` exclusively |
 | Expecting AOT under `dev` | `dev` is non-AOT; AOT applies to the default publish path |
-| AOT failures on stable runs | Source-generated JSON or `dnx go -- app.cs --r2r` |
+| Platform linker / VC++ missing on stable AOT publish | `dnx go -- check`, then install per the printed fix (Windows: `dnx vs -- install --passive --sku:build`; Ubuntu: `build-essential`; macOS: Xcode CLT) |
+| AOT failures on stable runs (reflection/dynamic) | Source-generated JSON or `dnx go -- app.cs --r2r` |
 | Need verbose SDK/MSBuild diagnostics | Fall back to `dotnet --file app.cs` / `dotnet build app.cs -v:n` |
 | Running a remote ref without consent | Ask the user; check owner/stars/source first |
 | `.cs` file inside a directory with a `.csproj` | Move the app outside the project directory |

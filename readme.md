@@ -37,6 +37,16 @@ The default mode publishes the app with native AOT and then runs the resulting e
 with smart up-to-date checks of every C# file used to build the app (including 
 `#include` and `#ref` directives, transitively).
 
+Native AOT needs a platform C/C++ linker (VC++ build tools on Windows, `build-essential` on
+Ubuntu, Xcode Command Line Tools on macOS). Verify with:
+
+```console
+dnx go -- check
+```
+
+On failure, the command prints the recommended install command for your OS (for example
+`dnx vs -- install --passive --sku:build` on Windows).
+
 Use `--r2r` when your app needs more dynamic .NET features (reflection, dynamic loading, etc.) 
 that native AOT does not support, while still keeping most publish optimizations:
 
