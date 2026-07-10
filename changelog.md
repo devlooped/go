@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.1](https://github.com/devlooped/go-sharp/tree/v1.0.1) (2026-07-10)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0...v1.0.1)
+
+:sparkles: Implemented enhancements:
+
+- Add check command to verify native AOT toolchain [\#31](https://github.com/devlooped/go-sharp/pull/31) (@kzu)
+
 ## [v1.0.0](https://github.com/devlooped/go-sharp/tree/v1.0.0) (2026-07-08)
 
 [Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0-beta...v1.0.0)
