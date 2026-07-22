@@ -54,6 +54,12 @@ With an empty history, or when stdin is redirected / non-interactive (CI, pipes)
 Local paths that no longer exist are dropped from the picker; remote refs stay listed
 even when their download bundle is gone (the next run re-downloads as usual).
 
+Gists are labeled like GitHub’s UI as `owner/filename` (for example `kzu/run.cs`)
+instead of the full host URL. When two or more history entries share the same
+owner and file name, the picker switches to a short ref form with the first
+seven characters of the gist id: `owner/shortsha:file` (for example
+`kzu/0ac826d:run.cs`).
+
 ```console
 # Interactive: pick a previous run, then optional args
 dnx go
@@ -111,8 +117,14 @@ dnx go -- kzu/sandbox@v1.2.3:src/hello.cs
 # Full host (GitHub, Gist, GitLab, Azure DevOps)
 dnx go -- github.com/kzu/sandbox@main:hello.cs
 dnx go -- gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
+# Multi-file gist: pick a specific entry file with :path (same as repos)
+dnx go -- gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:run.cs
 dnx go -- gitlab.com/kzu/runcs/-/blob/main/program.cs
 ```
+
+Without `:path`, a gist (or repo) defaults to `program.cs` when present, otherwise
+the first top-level `.cs` file. Use `:filename.cs` when a multi-file gist should
+run a different entry point.
 
 The first argument is resolved by first checking if it is a local file (`File.Exists`).
 If not, it falls back to parsing it as a remote ref (`owner/repo[@ref][:path]`).
