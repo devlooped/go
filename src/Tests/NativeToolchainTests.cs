@@ -152,7 +152,7 @@ public class NativeToolchainTests
     [Fact]
     public void PrepareCafArgs_passes_check_args_through_unchanged()
     {
-        var caf = GoArgs.PrepareCafArgs(["check"]);
+        var caf = GoArgs.PrepareArgs(["check"]);
         Assert.Equal(["check"], caf);
         Assert.Empty(GoArgs.ForwardArgs);
     }

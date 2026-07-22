@@ -72,11 +72,11 @@ public class SkillCommandsTests
     [Fact]
     public void PrepareCafArgs_passes_skill_args_through_unchanged()
     {
-        var caf = GoArgs.PrepareCafArgs(["skill", "."]);
+        var caf = GoArgs.PrepareArgs(["skill", "."]);
         Assert.Equal(["skill", "."], caf);
         Assert.Empty(GoArgs.ForwardArgs);
 
-        caf = GoArgs.PrepareCafArgs(["skill", "remove", "."]);
+        caf = GoArgs.PrepareArgs(["skill", "remove", "."]);
         Assert.Equal(["skill", "remove", "."], caf);
         Assert.Empty(GoArgs.ForwardArgs);
     }

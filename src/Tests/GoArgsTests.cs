@@ -62,7 +62,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_forwards_all_trailing_tokens_as_app_args()
     {
-        var caf = GoArgs.PrepareCafArgs(["app.cs", "/p:MyProp=true", "arg1", "arg2"]);
+        var caf = GoArgs.PrepareArgs(["app.cs", "/p:MyProp=true", "arg1", "arg2"]);
 
         Assert.Equal(["app.cs"], caf);
         Assert.Equal(["/p:MyProp=true", "arg1", "arg2"], GoArgs.ForwardArgs);
@@ -71,7 +71,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_forwards_verbosity_tokens_as_app_args()
     {
-        var caf = GoArgs.PrepareCafArgs(["app.cs", "-v", "n", "hello", "world"]);
+        var caf = GoArgs.PrepareArgs(["app.cs", "-v", "n", "hello", "world"]);
 
         Assert.Equal(["app.cs"], caf);
         Assert.Equal(["-v", "n", "hello", "world"], GoArgs.ForwardArgs);
@@ -80,7 +80,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_keeps_go_flags_and_forwards_rest_for_dev()
     {
-        var caf = GoArgs.PrepareCafArgs(["dev", "app.cs", "--r2r", "apparg", "/p:x=1"]);
+        var caf = GoArgs.PrepareArgs(["dev", "app.cs", "--r2r", "apparg", "/p:x=1"]);
 
         Assert.Equal(["dev", "app.cs", "--r2r"], caf);
         Assert.Equal(["apparg", "/p:x=1"], GoArgs.ForwardArgs);
@@ -89,7 +89,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_forwards_positional_args_when_no_options()
     {
-        GoArgs.PrepareCafArgs(["app.cs", "arg1", "arg2"]);
+        GoArgs.PrepareArgs(["app.cs", "arg1", "arg2"]);
 
         Assert.Equal(["arg1", "arg2"], GoArgs.ForwardArgs);
     }
@@ -97,7 +97,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_passes_clean_args_through_unchanged()
     {
-        var caf = GoArgs.PrepareCafArgs(["clean", "--all"]);
+        var caf = GoArgs.PrepareArgs(["clean", "--all"]);
 
         Assert.Equal(["clean", "--all"], caf);
         Assert.Empty(GoArgs.ForwardArgs);
@@ -106,7 +106,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_passes_help_through_unchanged()
     {
-        var caf = GoArgs.PrepareCafArgs(["--help"]);
+        var caf = GoArgs.PrepareArgs(["--help"]);
 
         Assert.Equal(["--help"], caf);
         Assert.Empty(GoArgs.ForwardArgs);
@@ -115,7 +115,7 @@ public class GoArgsTests
     [Fact]
     public void PrepareCafArgs_maps_debug_flag_to_caf_option_name()
     {
-        var caf = GoArgs.PrepareCafArgs(["app.cs", "--debug", "apparg"]);
+        var caf = GoArgs.PrepareArgs(["app.cs", "--debug", "apparg"]);
 
         Assert.Equal(["app.cs", "--gdbg"], caf);
         Assert.Equal(["apparg"], GoArgs.ForwardArgs);
@@ -125,7 +125,7 @@ public class GoArgsTests
     public void PrepareCafArgs_does_not_split_on_double_dash()
     {
         // A bare "--" is no longer a dotnet/app separator; it is an app arg if present.
-        var caf = GoArgs.PrepareCafArgs(["app.cs", "--", "arg1"]);
+        var caf = GoArgs.PrepareArgs(["app.cs", "--", "arg1"]);
 
         Assert.Equal(["app.cs"], caf);
         Assert.Equal(["--", "arg1"], GoArgs.ForwardArgs);

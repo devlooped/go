@@ -73,7 +73,7 @@ public static class GoArgs
     /// and pass-through app arguments. Go options such as <c>--r2r</c>
     /// stay in the CAF slice; every other trailing token becomes an app argument.
     /// </summary>
-    internal static string[] PrepareCafArgs(string[] args)
+    internal static string[] PrepareArgs(string[] args)
     {
         args = Normalize(args);
         if (args.Length == 0)
