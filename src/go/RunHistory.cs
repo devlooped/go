@@ -1,10 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Devlooped;
 
 /// <summary>A previously run go entry from root <c>go.toml</c> history.</summary>
 public record RunHistoryEntry(string Input, DateTimeOffset LastUsedUtc, int UseCount)
 {
-    /// <summary>Display label for the picker (forward slashes for paths).</summary>
-    public string Display => Input.Replace('\\', '/');
+    /// <summary>Display label for the picker (forward slashes for paths; gists as owner/file).</summary>
+    public string Display { get; init; } = Input.Replace('\\', '/');
 }
 
 /// <summary>
@@ -26,7 +28,8 @@ public static class RunHistory
             return [];
 
         var pruned = false;
-        var listed = new List<RunHistoryEntry>(settings.History.Count);
+        // BaseDisplay is owner/file for gists when known; Gist* fields support collision disambiguation.
+        var pending = new List<(string Input, DateTimeOffset LastUsedUtc, int UseCount, string BaseDisplay, string? GistOwner, string? GistId, string? GistFile)>(settings.History.Count);
         for (var i = settings.History.Count - 1; i >= 0; i--)
         {
             var h = settings.History[i];
@@ -37,14 +40,47 @@ public static class RunHistory
                 continue;
             }
 
-            listed.Add(new RunHistoryEntry(
+            var baseDisplay = FormatBaseDisplay(h.Input, h.Entry, out var gistOwner, out var gistId, out var gistFile);
+            pending.Add((
                 h.Input,
                 h.LastUsedUtc == default ? DateTimeOffset.MinValue : h.LastUsedUtc,
-                h.UseCount <= 0 ? 1 : h.UseCount));
+                h.UseCount <= 0 ? 1 : h.UseCount,
+                baseDisplay,
+                gistOwner,
+                gistId,
+                gistFile));
         }
 
         if (pruned)
             SettingsStore.Save(settings, settingsPath);
+
+        // Disambiguate gist labels that share the same owner/file with a short gist id.
+        var gistLabelCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in pending)
+        {
+            if (item.GistId is null)
+                continue;
+            gistLabelCounts[item.BaseDisplay] = gistLabelCounts.GetValueOrDefault(item.BaseDisplay) + 1;
+        }
+
+        var listed = new List<RunHistoryEntry>(pending.Count);
+        foreach (var item in pending)
+        {
+            var display = item.BaseDisplay;
+            // Colliding owner/file gists → owner/shortsha:file (ref-like, familiar).
+            if (item.GistId is { } id
+                && item.GistFile is { } file
+                && gistLabelCounts.TryGetValue(item.BaseDisplay, out var count)
+                && count > 1)
+            {
+                display = $"{item.GistOwner}/{ShortId(id)}:{file}";
+            }
+
+            listed.Add(new RunHistoryEntry(item.Input, item.LastUsedUtc, item.UseCount)
+            {
+                Display = display,
+            });
+        }
 
         listed.Sort(static (a, b) =>
         {
@@ -105,6 +141,7 @@ public static class RunHistory
         settings.History ??= [];
 
         var existing = settings.History.FirstOrDefault(h => HistoryKeyEquals(h.Input, key));
+        var capturedEntry = TryCaptureGistEntry(key);
 
         var now = DateTimeOffset.UtcNow;
         if (existing is not null)
@@ -112,6 +149,9 @@ public static class RunHistory
             existing.LastUsedUtc = now;
             existing.UseCount = existing.UseCount <= 0 ? 2 : existing.UseCount + 1;
             // Keep stored form stable (prefer existing casing/path form).
+            // Refresh entry filename when we can resolve it (e.g. after first download).
+            if (capturedEntry is not null)
+                existing.Entry = capturedEntry;
         }
         else
         {
@@ -120,6 +160,7 @@ public static class RunHistory
                 Input = key,
                 LastUsedUtc = now,
                 UseCount = 1,
+                Entry = capturedEntry,
             });
         }
 
@@ -254,4 +295,108 @@ public static class RunHistory
 
         return input;
     }
+
+    /// <summary>
+    /// Builds the base picker label. Gists become <c>owner/filename</c> when the file is known
+    /// (explicit <c>:path</c>, cached history entry, or live download bundle); otherwise the
+    /// normalized input. When a gist label is produced, owner/id/file outs are set for
+    /// collision disambiguation as <c>owner/shortsha:file</c>.
+    /// </summary>
+    internal static string FormatBaseDisplay(
+        string input,
+        string? cachedEntry,
+        out string? gistOwner,
+        out string? gistId,
+        out string? gistFile)
+    {
+        gistOwner = null;
+        gistId = null;
+        gistFile = null;
+        if (TryGetGistParts(input, out var owner, out var id, out var remote))
+        {
+            var file = ResolveGistFileName(remote, cachedEntry);
+            if (file is not null)
+            {
+                gistOwner = owner;
+                gistId = id;
+                gistFile = file;
+                return $"{owner}/{file}";
+            }
+        }
+
+        return input.Replace('\\', '/');
+    }
+
+    /// <summary>First 7 characters of a gist id (or the full id when shorter).</summary>
+    internal static string ShortId(string gistId)
+        => gistId.Length <= 7 ? gistId : gistId[..7];
+
+    /// <summary>
+    /// Resolves the entry file name for a gist: explicit path, history cache, remote settings,
+    /// or first top-level <c>.cs</c> in the download bundle.
+    /// </summary>
+    internal static string? ResolveGistFileName(RemoteRef remote, string? cachedEntry)
+    {
+        if (!string.IsNullOrEmpty(remote.Path))
+            return FileNameOnly(remote.Path);
+
+        if (!string.IsNullOrEmpty(cachedEntry))
+            return FileNameOnly(cachedEntry);
+
+        try
+        {
+            if (!Directory.Exists(remote.TempPath))
+                return null;
+
+            var settings = RemoteSettingsStore.Load(remote.TempPath);
+            if (!string.IsNullOrEmpty(settings.Entry))
+                return FileNameOnly(settings.Entry);
+
+            var prog = Path.Combine(remote.TempPath, "program.cs");
+            if (File.Exists(prog))
+                return "program.cs";
+
+            var first = Directory.EnumerateFiles(remote.TempPath, "*.cs", SearchOption.TopDirectoryOnly).FirstOrDefault();
+            if (first is not null)
+                return Path.GetFileName(first);
+        }
+        catch
+        {
+            // Bundle missing or unreadable — caller falls back to raw input.
+        }
+
+        return null;
+    }
+
+    static string? TryCaptureGistEntry(string input)
+    {
+        if (!TryGetGistParts(input, out _, out _, out var remote))
+            return null;
+        return ResolveGistFileName(remote, cachedEntry: null);
+    }
+
+    static bool TryGetGistParts(
+        string input,
+        [NotNullWhen(true)] out string? owner,
+        [NotNullWhen(true)] out string? gistId,
+        [NotNullWhen(true)] out RemoteRef? remote)
+    {
+        owner = null;
+        gistId = null;
+        remote = null;
+
+        if (!RemoteRef.TryParse(input, out var parsed))
+            return false;
+
+        if (!string.Equals(parsed.Host, "gist.github.com", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        owner = parsed.Owner;
+        gistId = parsed.Repo;
+        remote = parsed;
+        return true;
+    }
+
+    static string FileNameOnly(string path)
+        => Path.GetFileName(path.Replace('\\', '/'));
 }

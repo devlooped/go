@@ -315,6 +315,236 @@ public class RunHistoryTests
         Assert.Equal(["arg1", "arg2"], appArgs);
     }
 
+    [Fact]
+    public void List_formats_gists_as_owner_filename_from_path_suffix()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry
+                    {
+                        Input = "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:run.cs",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                    },
+                    new HistoryEntry
+                    {
+                        Input = "kzu/sandbox",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                    },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            var gist = listed.Single(e => e.Input.Contains("0ac826dc", StringComparison.Ordinal));
+            Assert.Equal("kzu/run.cs", gist.Display);
+
+            var repo = listed.Single(e => e.Input == "kzu/sandbox");
+            Assert.Equal("kzu/sandbox", repo.Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void List_formats_gists_as_owner_filename_from_cached_entry()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry
+                    {
+                        Input = "gist.github.com/kzu/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                        Entry = "hello.cs",
+                    },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            Assert.Single(listed);
+            Assert.Equal("kzu/hello.cs", listed[0].Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void List_disambiguates_same_owner_file_with_short_gist_id()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry
+                    {
+                        Input = "gist.github.com/kzu/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 2,
+                        Entry = "run.cs",
+                    },
+                    new HistoryEntry
+                    {
+                        Input = "gist.github.com/kzu/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                        Entry = "run.cs",
+                    },
+                    new HistoryEntry
+                    {
+                        Input = "gist.github.com/other/cccccccccccccccccccccccccccccccc",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                        Entry = "run.cs",
+                    },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            var kzuA = listed.Single(e => e.Input.Contains("aaaaaaaa", StringComparison.Ordinal));
+            var kzuB = listed.Single(e => e.Input.Contains("bbbbbbbb", StringComparison.Ordinal));
+            var other = listed.Single(e => e.Input.Contains("cccccccc", StringComparison.Ordinal));
+
+            Assert.Equal("kzu/aaaaaaa:run.cs", kzuA.Display);
+            Assert.Equal("kzu/bbbbbbb:run.cs", kzuB.Display);
+            // Different owner — no disambiguation needed even though file name matches.
+            Assert.Equal("other/run.cs", other.Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void List_gist_without_known_file_keeps_raw_input()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            var input = "gist.github.com/kzu/dddddddddddddddddddddddddddddddd";
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry
+                    {
+                        Input = input,
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                    },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            Assert.Single(listed);
+            Assert.Equal(input, listed[0].Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void FormatBaseDisplay_and_ShortId_helpers()
+    {
+        Assert.Equal("aaaaaaa", RunHistory.ShortId("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+        Assert.Equal("short", RunHistory.ShortId("short"));
+
+        var withPath = RunHistory.FormatBaseDisplay(
+            "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:app.cs",
+            cachedEntry: null,
+            out var owner, out var gistId, out var file);
+        Assert.Equal("kzu/app.cs", withPath);
+        Assert.Equal("kzu", owner);
+        Assert.Equal("0ac826dc7de666546aaedd38e5965381", gistId);
+        Assert.Equal("app.cs", file);
+
+        var withCache = RunHistory.FormatBaseDisplay(
+            "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381",
+            cachedEntry: "from-cache.cs",
+            out owner, out gistId, out file);
+        Assert.Equal("kzu/from-cache.cs", withCache);
+        Assert.Equal("kzu", owner);
+        Assert.Equal("0ac826dc7de666546aaedd38e5965381", gistId);
+        Assert.Equal("from-cache.cs", file);
+
+        var repo = RunHistory.FormatBaseDisplay("kzu/sandbox", null, out owner, out gistId, out file);
+        Assert.Equal("kzu/sandbox", repo);
+        Assert.Null(owner);
+        Assert.Null(gistId);
+        Assert.Null(file);
+    }
+
+    [Fact]
+    public void Record_captures_gist_entry_from_path_suffix()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            RunHistory.Record("gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:run.cs", path);
+
+            var settings = SettingsStore.Load(path);
+            Assert.Single(settings.History!);
+            Assert.Equal("run.cs", settings.History![0].Entry);
+
+            var listed = RunHistory.List(path);
+            Assert.Equal("kzu/run.cs", listed[0].Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void List_formats_https_gist_url_with_cached_entry()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry
+                    {
+                        Input = "https://gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381",
+                        LastUsedUtc = DateTimeOffset.UtcNow,
+                        UseCount = 1,
+                        Entry = "run.cs",
+                    },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            Assert.Single(listed);
+            Assert.Equal("kzu/run.cs", listed[0].Display);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
     static string NewSettingsPath()
         => Path.Combine(Path.GetTempPath(), "go-hist-test-" + Guid.NewGuid().ToString("N") + ".toml");
 

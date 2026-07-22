@@ -22,6 +22,12 @@ public class HistoryEntry
     public DateTimeOffset LastUsedUtc { get; set; }
 
     public int UseCount { get; set; }
+
+    /// <summary>
+    /// Optional entry-point file name for display (e.g. gist entry file).
+    /// Captured when recording so MRU labels stay useful after the download cache is cleaned.
+    /// </summary>
+    public string? Entry { get; set; }
 }
 
 public static class SettingsStore
