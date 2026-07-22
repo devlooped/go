@@ -316,7 +316,7 @@ public class RunHistoryTests
     }
 
     [Fact]
-    public void List_formats_gists_as_owner_filename_from_path_suffix()
+    public void List_formats_gists_as_owner_shortsha_file_from_path_suffix()
     {
         var path = NewSettingsPath();
         try
@@ -342,7 +342,7 @@ public class RunHistoryTests
 
             var listed = RunHistory.List(path);
             var gist = listed.Single(e => e.Input.Contains("0ac826dc", StringComparison.Ordinal));
-            Assert.Equal("kzu/run.cs", gist.Display);
+            Assert.Equal("kzu/0ac826d:run.cs", gist.Display);
 
             var repo = listed.Single(e => e.Input == "kzu/sandbox");
             Assert.Equal("kzu/sandbox", repo.Display);
@@ -354,7 +354,7 @@ public class RunHistoryTests
     }
 
     [Fact]
-    public void List_formats_gists_as_owner_filename_from_cached_entry()
+    public void List_formats_gists_as_owner_shortsha_file_from_cached_entry()
     {
         var path = NewSettingsPath();
         try
@@ -375,7 +375,7 @@ public class RunHistoryTests
 
             var listed = RunHistory.List(path);
             Assert.Single(listed);
-            Assert.Equal("kzu/hello.cs", listed[0].Display);
+            Assert.Equal("kzu/aaaaaaa:hello.cs", listed[0].Display);
         }
         finally
         {
@@ -384,7 +384,7 @@ public class RunHistoryTests
     }
 
     [Fact]
-    public void List_disambiguates_same_owner_file_with_short_gist_id()
+    public void List_always_includes_short_gist_id_even_for_unique_owner_file()
     {
         var path = NewSettingsPath();
         try
@@ -424,8 +424,7 @@ public class RunHistoryTests
 
             Assert.Equal("kzu/aaaaaaa:run.cs", kzuA.Display);
             Assert.Equal("kzu/bbbbbbb:run.cs", kzuB.Display);
-            // Different owner — no disambiguation needed even though file name matches.
-            Assert.Equal("other/run.cs", other.Display);
+            Assert.Equal("other/ccccccc:run.cs", other.Display);
         }
         finally
         {
@@ -464,34 +463,24 @@ public class RunHistoryTests
     }
 
     [Fact]
-    public void FormatBaseDisplay_and_ShortId_helpers()
+    public void FormatDisplay_and_ShortId_helpers()
     {
         Assert.Equal("aaaaaaa", RunHistory.ShortId("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
         Assert.Equal("short", RunHistory.ShortId("short"));
 
-        var withPath = RunHistory.FormatBaseDisplay(
-            "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:app.cs",
-            cachedEntry: null,
-            out var owner, out var gistId, out var file);
-        Assert.Equal("kzu/app.cs", withPath);
-        Assert.Equal("kzu", owner);
-        Assert.Equal("0ac826dc7de666546aaedd38e5965381", gistId);
-        Assert.Equal("app.cs", file);
+        Assert.Equal(
+            "kzu/0ac826d:app.cs",
+            RunHistory.FormatDisplay(
+                "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381:app.cs",
+                cachedEntry: null));
 
-        var withCache = RunHistory.FormatBaseDisplay(
-            "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381",
-            cachedEntry: "from-cache.cs",
-            out owner, out gistId, out file);
-        Assert.Equal("kzu/from-cache.cs", withCache);
-        Assert.Equal("kzu", owner);
-        Assert.Equal("0ac826dc7de666546aaedd38e5965381", gistId);
-        Assert.Equal("from-cache.cs", file);
+        Assert.Equal(
+            "kzu/0ac826d:from-cache.cs",
+            RunHistory.FormatDisplay(
+                "gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381",
+                cachedEntry: "from-cache.cs"));
 
-        var repo = RunHistory.FormatBaseDisplay("kzu/sandbox", null, out owner, out gistId, out file);
-        Assert.Equal("kzu/sandbox", repo);
-        Assert.Null(owner);
-        Assert.Null(gistId);
-        Assert.Null(file);
+        Assert.Equal("kzu/sandbox", RunHistory.FormatDisplay("kzu/sandbox", null));
     }
 
     [Fact]
@@ -507,7 +496,7 @@ public class RunHistoryTests
             Assert.Equal("run.cs", settings.History![0].Entry);
 
             var listed = RunHistory.List(path);
-            Assert.Equal("kzu/run.cs", listed[0].Display);
+            Assert.Equal("kzu/0ac826d:run.cs", listed[0].Display);
         }
         finally
         {
@@ -537,7 +526,7 @@ public class RunHistoryTests
 
             var listed = RunHistory.List(path);
             Assert.Single(listed);
-            Assert.Equal("kzu/run.cs", listed[0].Display);
+            Assert.Equal("kzu/0ac826d:run.cs", listed[0].Display);
         }
         finally
         {
