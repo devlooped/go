@@ -14,6 +14,7 @@ Commands:
   check           Verifies the native toolchain required for native AOT publishes.
   clean           Deletes cached publish artifacts for a file-based .NET app, or for a remote ref.
   dev             Runs a file-based .NET app from a .cs entrypoint using dotnet run for fast iteration.
+  open            Opens a local file or the web URL for a remote ref in the default app/browser. When omitted, selects from previous runs (MRU).
   remove          Cleans cached artifacts (same as clean) and removes the entry from MRU history.
   skill           Installs the bundled go-sharp agent skill (SKILL.md) for agent tooling.
   skill remove    Removes a previously installed go-sharp agent skill.
