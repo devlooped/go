@@ -5,7 +5,7 @@ public static class GoArgs
     public static readonly string[] ReadyToRunPublishArgs = ["/p:PublishAot=false", "/p:PublishReadyToRun=true"];
 
     static readonly string[] GoSwitchNames = ["debug", "r2r", "gdbg"];
-    static readonly HashSet<string> Subcommands = new(StringComparer.OrdinalIgnoreCase) { "dev", "clean", "check", "skill" };
+    static readonly HashSet<string> Subcommands = new(StringComparer.OrdinalIgnoreCase) { "dev", "clean", "remove", "check", "skill" };
 
     static string[]? forwardArgs;
 
@@ -82,10 +82,11 @@ public static class GoArgs
             return args;
         }
 
-        if (args.Any(static a => a is "-h" or "--help" or "--version"))
+        if (args.Any(static a => a is "-h" or "--help" or "-?" or "--version"))
         {
             forwardArgs = [];
-            return args;
+            // CAF understands --help; map -? so short help works uniformly.
+            return [.. args.Select(static a => a == "-?" ? "--help" : a)];
         }
 
         var index = 0;
@@ -96,8 +97,8 @@ public static class GoArgs
             index = 1;
         }
 
-        // clean / check / skill (and nested skill remove) own their args; do not split for app forwarding.
-        if (subcommand is "clean" or "check" or "skill")
+        // clean / remove / check / skill (and nested skill remove) own their args; do not split for app forwarding.
+        if (subcommand is "clean" or "remove" or "check" or "skill")
         {
             forwardArgs = [];
             return args;

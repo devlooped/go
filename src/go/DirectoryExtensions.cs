@@ -27,13 +27,15 @@ static class DirectoryExtensions
         }
 
         public static string GetPublishDir(string entryPointFileFullPath)
+            => CreateUserDirectory(Path.Combine(GetTempRoot(), GetPublishDirName(entryPointFileFullPath)));
+
+        /// <summary>Publish-cache directory name for an entry point: <c>{fileName}-{hash}</c>.</summary>
+        public static string GetPublishDirName(string entryPointFileFullPath)
         {
             // Include entry point file name so the directory name is not completely opaque.
             var fileName = Path.GetFileNameWithoutExtension(entryPointFileFullPath);
             var hash = HashWithNormalizedCasing(entryPointFileFullPath);
-            var directoryName = $"{fileName}-{hash}";
-
-            return CreateUserDirectory(Path.Combine(GetTempRoot(), directoryName));
+            return $"{fileName}-{hash}";
         }
 
         /// <summary>Obtains the temporary directory root, e.g., <c>/tmp/dotnet/go/</c>.</summary>
