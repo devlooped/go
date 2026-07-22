@@ -8,7 +8,10 @@ public static class CleanupManager
     {
         CleanupStaleDirectories(root ?? Directory.GetTempRoot(), days);
 
-        SettingsStore.Save(new Settings { LastCleanupUtc = DateTimeOffset.UtcNow }, settingsPath);
+        // Preserve history and other fields in the shared root go.toml.
+        var settings = SettingsStore.Load(settingsPath);
+        settings.LastCleanupUtc = DateTimeOffset.UtcNow;
+        SettingsStore.Save(settings, settingsPath);
         return 0;
     }
 

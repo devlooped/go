@@ -31,12 +31,36 @@ dnx go -- app.cs
 
 # Pass arguments to your app
 dnx go -- app.cs arg1 arg2
+
+# Re-run a previous app from interactive history (no path/ref required)
+dnx go
 ```
 
 The default mode publishes the app with native AOT and then runs the resulting executable, 
 with smart up-to-date checks of every C# file used to build the app (including 
 `#include` and `#ref` directives, transitively).
 
+### Run history (MRU)
+
+Every successful `go` / `go dev` invocation records the entry point (local full path or
+remote ref) in a shared history file next to the cache root (`dotnet/go/go.toml`).
+
+With at least one history entry, running with **no arguments** opens an interactive
+picker (searchable, ordered by use count then recency). After you pick an entry you
+can optionally type app arguments (quoted groups supported). With an empty history,
+`dnx go` with no args shows help instead.
+
+Local paths that no longer exist are dropped from the picker; remote refs stay listed
+even when their download bundle is gone (the next run re-downloads as usual).
+
+```console
+# Interactive: pick a previous run, then optional args
+dnx go
+
+# Same as always — also bumps that entry in history
+dnx go -- app.cs
+dnx go -- kzu/sandbox
+```
 Native AOT needs a platform C/C++ linker (VC++ build tools on Windows, `build-essential` on
 Ubuntu, Xcode Command Line Tools on macOS). Verify with:
 
@@ -130,9 +154,23 @@ dnx go -- clean owner/repo[@ref][:path]
 dnx go -- clean --all
 ```
 
+`clean` only removes build/publish/download artifacts. Run history is left intact
+so the MRU picker still lists those apps (a later run simply rebuilds or re-downloads).
+
+To drop history as well, use `remove`:
+
+```console
+# Clean artifacts and remove this entry from MRU history
+dnx go -- remove app.cs
+dnx go -- remove owner/repo[@ref][:path]
+
+# Wipe all cached apps and clear the entire MRU history
+dnx go -- remove --all
+```
+
 Unused download locations and published binaries are periodically cleaned up
 in a detached background process. Apps you run regularly are never affected.
-
+Automatic cleanup updates `lastCleanupUtc` in `go.toml` but does not clear history.
 ## Agent skill
 
 `go#` ships a bundled [agent skill](skills/go-sharp/SKILL.md) that teaches coding

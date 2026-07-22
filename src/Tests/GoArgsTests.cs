@@ -104,9 +104,28 @@ public class GoArgsTests
     }
 
     [Fact]
+    public void PrepareCafArgs_passes_remove_args_through_unchanged()
+    {
+        var caf = GoArgs.PrepareArgs(["remove", "app.cs", "--all"]);
+
+        // remove owns its args (same non-forwarding path as clean); do not strip --all as app arg.
+        Assert.Equal(["remove", "app.cs", "--all"], caf);
+        Assert.Empty(GoArgs.ForwardArgs);
+    }
+
+    [Fact]
     public void PrepareCafArgs_passes_help_through_unchanged()
     {
         var caf = GoArgs.PrepareArgs(["--help"]);
+
+        Assert.Equal(["--help"], caf);
+        Assert.Empty(GoArgs.ForwardArgs);
+    }
+
+    [Fact]
+    public void PrepareCafArgs_maps_question_mark_help_to_help()
+    {
+        var caf = GoArgs.PrepareArgs(["-?"]);
 
         Assert.Equal(["--help"], caf);
         Assert.Empty(GoArgs.ForwardArgs);
