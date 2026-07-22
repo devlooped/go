@@ -4,7 +4,7 @@ Usage: [command] [arguments...] [options...] [-h|--help] [--version]
 Runs a file-based .NET app from a .cs entrypoint.
 
 Arguments:
-  [0] <string?>     Path to an existing .cs file or remote ref (owner/repo[@ref][:path]). When omitted in an interactive terminal, selects from previous runs (MRU) then prompts for optional app args; otherwise shows help.
+  [0] <string?>     Path to an existing .cs file or remote ref (owner/repo[@ref][:path]). When omitted, selects from previous runs (MRU) then prompts for optional app args.
   [1] <string[]>    Arguments to pass to the app.
 
 Options:

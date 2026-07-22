@@ -16,6 +16,8 @@ public static class RunHistory
     /// <summary>
     /// Loads history from <paramref name="settingsPath"/> (default: root go.toml),
     /// ordered most-used first, then most-recently-used, then alphabetically.
+    /// Drops non-selectable entries (e.g. deleted local files) from storage so later
+    /// lists skip the filesystem checks; saves at most once after pruning.
     /// </summary>
     public static IReadOnlyList<RunHistoryEntry> List(string? settingsPath = null)
     {
@@ -23,17 +25,39 @@ public static class RunHistory
         if (settings.History is not { Count: > 0 })
             return [];
 
-        return settings.History
-            .Where(static h => !string.IsNullOrWhiteSpace(h.Input))
-            .Where(static h => IsSelectable(h.Input))
-            .Select(static h => new RunHistoryEntry(
+        var pruned = false;
+        var listed = new List<RunHistoryEntry>(settings.History.Count);
+        for (var i = settings.History.Count - 1; i >= 0; i--)
+        {
+            var h = settings.History[i];
+            if (string.IsNullOrWhiteSpace(h.Input) || !IsSelectable(h.Input))
+            {
+                settings.History.RemoveAt(i);
+                pruned = true;
+                continue;
+            }
+
+            listed.Add(new RunHistoryEntry(
                 h.Input,
                 h.LastUsedUtc == default ? DateTimeOffset.MinValue : h.LastUsedUtc,
-                h.UseCount <= 0 ? 1 : h.UseCount))
-            .OrderByDescending(static e => e.UseCount)
-            .ThenByDescending(static e => e.LastUsedUtc)
-            .ThenBy(static e => e.Display, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+                h.UseCount <= 0 ? 1 : h.UseCount));
+        }
+
+        if (pruned)
+            SettingsStore.Save(settings, settingsPath);
+
+        listed.Sort(static (a, b) =>
+        {
+            var byCount = b.UseCount.CompareTo(a.UseCount);
+            if (byCount != 0)
+                return byCount;
+            var byTime = b.LastUsedUtc.CompareTo(a.LastUsedUtc);
+            if (byTime != 0)
+                return byTime;
+            return StringComparer.OrdinalIgnoreCase.Compare(a.Display, b.Display);
+        });
+
+        return listed;
     }
 
     /// <summary>
