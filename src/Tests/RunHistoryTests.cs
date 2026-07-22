@@ -237,6 +237,44 @@ public class RunHistoryTests
             var listed = RunHistory.List(path);
             Assert.Single(listed);
             Assert.Equal("still/here", listed[0].Input);
+
+            // Deleted local entries are pruned from storage (single save after list build).
+            var stored = SettingsStore.Load(path);
+            Assert.Single(stored.History!);
+            Assert.Equal("still/here", stored.History![0].Input);
+        }
+        finally
+        {
+            TryDelete(path);
+        }
+    }
+
+    [Fact]
+    public void List_prunes_blank_and_missing_paths_in_one_save()
+    {
+        var path = NewSettingsPath();
+        try
+        {
+            var missing1 = Path.Combine(Path.GetTempPath(), "go-hist-m1-" + Guid.NewGuid().ToString("N"), "a.cs");
+            var missing2 = Path.Combine(Path.GetTempPath(), "go-hist-m2-" + Guid.NewGuid().ToString("N"), "b.cs");
+            SettingsStore.Save(new Settings
+            {
+                History =
+                [
+                    new HistoryEntry { Input = missing1, LastUsedUtc = DateTimeOffset.UtcNow, UseCount = 3 },
+                    new HistoryEntry { Input = "   ", LastUsedUtc = DateTimeOffset.UtcNow, UseCount = 1 },
+                    new HistoryEntry { Input = "keep/ref", LastUsedUtc = DateTimeOffset.UtcNow, UseCount = 2 },
+                    new HistoryEntry { Input = missing2, LastUsedUtc = DateTimeOffset.UtcNow, UseCount = 4 },
+                ],
+            }, path);
+
+            var listed = RunHistory.List(path);
+            Assert.Single(listed);
+            Assert.Equal("keep/ref", listed[0].Input);
+
+            var stored = SettingsStore.Load(path);
+            Assert.Single(stored.History!);
+            Assert.Equal("keep/ref", stored.History![0].Input);
         }
         finally
         {
