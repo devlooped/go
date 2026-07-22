@@ -5,7 +5,7 @@ namespace Devlooped;
 /// <summary>A previously run go entry from root <c>go.toml</c> history.</summary>
 public record RunHistoryEntry(string Input, DateTimeOffset LastUsedUtc, int UseCount)
 {
-    /// <summary>Display label for the picker (forward slashes for paths; gists as owner/file).</summary>
+    /// <summary>Display label for the picker (forward slashes for paths; gists as owner/shortsha:file).</summary>
     public string Display { get; init; } = Input.Replace('\\', '/');
 }
 
@@ -28,8 +28,7 @@ public static class RunHistory
             return [];
 
         var pruned = false;
-        // BaseDisplay is owner/file for gists when known; Gist* fields support collision disambiguation.
-        var pending = new List<(string Input, DateTimeOffset LastUsedUtc, int UseCount, string BaseDisplay, string? GistOwner, string? GistId, string? GistFile)>(settings.History.Count);
+        var listed = new List<RunHistoryEntry>(settings.History.Count);
         for (var i = settings.History.Count - 1; i >= 0; i--)
         {
             var h = settings.History[i];
@@ -40,47 +39,17 @@ public static class RunHistory
                 continue;
             }
 
-            var baseDisplay = FormatBaseDisplay(h.Input, h.Entry, out var gistOwner, out var gistId, out var gistFile);
-            pending.Add((
+            listed.Add(new RunHistoryEntry(
                 h.Input,
                 h.LastUsedUtc == default ? DateTimeOffset.MinValue : h.LastUsedUtc,
-                h.UseCount <= 0 ? 1 : h.UseCount,
-                baseDisplay,
-                gistOwner,
-                gistId,
-                gistFile));
+                h.UseCount <= 0 ? 1 : h.UseCount)
+            {
+                Display = FormatDisplay(h.Input, h.Entry),
+            });
         }
 
         if (pruned)
             SettingsStore.Save(settings, settingsPath);
-
-        // Disambiguate gist labels that share the same owner/file with a short gist id.
-        var gistLabelCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in pending)
-        {
-            if (item.GistId is null)
-                continue;
-            gistLabelCounts[item.BaseDisplay] = gistLabelCounts.GetValueOrDefault(item.BaseDisplay) + 1;
-        }
-
-        var listed = new List<RunHistoryEntry>(pending.Count);
-        foreach (var item in pending)
-        {
-            var display = item.BaseDisplay;
-            // Colliding owner/file gists → owner/shortsha:file (ref-like, familiar).
-            if (item.GistId is { } id
-                && item.GistFile is { } file
-                && gistLabelCounts.TryGetValue(item.BaseDisplay, out var count)
-                && count > 1)
-            {
-                display = $"{item.GistOwner}/{ShortId(id)}:{file}";
-            }
-
-            listed.Add(new RunHistoryEntry(item.Input, item.LastUsedUtc, item.UseCount)
-            {
-                Display = display,
-            });
-        }
 
         listed.Sort(static (a, b) =>
         {
@@ -297,31 +266,17 @@ public static class RunHistory
     }
 
     /// <summary>
-    /// Builds the base picker label. Gists become <c>owner/filename</c> when the file is known
+    /// Builds the picker label. Gists use <c>owner/shortsha:file</c> when the file is known
     /// (explicit <c>:path</c>, cached history entry, or live download bundle); otherwise the
-    /// normalized input. When a gist label is produced, owner/id/file outs are set for
-    /// collision disambiguation as <c>owner/shortsha:file</c>.
+    /// normalized input.
     /// </summary>
-    internal static string FormatBaseDisplay(
-        string input,
-        string? cachedEntry,
-        out string? gistOwner,
-        out string? gistId,
-        out string? gistFile)
+    internal static string FormatDisplay(string input, string? cachedEntry)
     {
-        gistOwner = null;
-        gistId = null;
-        gistFile = null;
         if (TryGetGistParts(input, out var owner, out var id, out var remote))
         {
             var file = ResolveGistFileName(remote, cachedEntry);
             if (file is not null)
-            {
-                gistOwner = owner;
-                gistId = id;
-                gistFile = file;
-                return $"{owner}/{file}";
-            }
+                return $"{owner}/{ShortId(id)}:{file}";
         }
 
         return input.Replace('\\', '/');

@@ -54,11 +54,8 @@ With an empty history, or when stdin is redirected / non-interactive (CI, pipes)
 Local paths that no longer exist are dropped from the picker; remote refs stay listed
 even when their download bundle is gone (the next run re-downloads as usual).
 
-Gists are labeled like GitHub’s UI as `owner/filename` (for example `kzu/run.cs`)
-instead of the full host URL. When two or more history entries share the same
-owner and file name, the picker switches to a short ref form with the first
-seven characters of the gist id: `owner/shortsha:file` (for example
-`kzu/0ac826d:run.cs`).
+Gists are labeled as `owner/shortsha:file` (first seven characters of the gist id),
+for example `kzu/0ac826d:run.cs`, instead of the full host URL.
 
 ```console
 # Interactive: pick a previous run, then optional args
