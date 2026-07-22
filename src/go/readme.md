@@ -62,6 +62,29 @@ dnx go
 dnx go -- app.cs
 dnx go -- kzu/sandbox
 ```
+
+### Open local files and remote refs
+
+Use `open` to shell-open a local file in the default app, or open the web URL for a
+remote ref in the browser — without downloading or running the app:
+
+```console
+# Open a local file (editor / OS association)
+dnx go -- open app.cs
+
+# Open the GitHub/GitLab/gist web page for a remote ref
+dnx go -- open kzu/sandbox
+dnx go -- open kzu/sandbox@main:src/hello.cs
+dnx go -- open gist.github.com/kzu/0ac826dc7de666546aaedd38e5965381
+
+# Interactive: pick from MRU history, then open the selection
+dnx go -- open
+```
+
+With no input, `open` uses the same history list as the default command (searchable
+picker). Empty history or a non-interactive terminal fails with a clear error instead
+of hanging. Opening does not record a new history entry.
+
 Native AOT needs a platform C/C++ linker (VC++ build tools on Windows, `build-essential` on
 Ubuntu, Xcode Command Line Tools on macOS). Verify with:
 
