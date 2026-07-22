@@ -16,8 +16,9 @@ app.Add<CleanupCommands>();
 app.Add<SkillCommands>();
 
 var prepared = GoArgs.PrepareArgs(args);
-// Zero-arg with no prior runs: show help (same as -h/--help/-?). With history, default command opens the MRU picker.
-if (prepared.Length == 0 && RunHistory.List().Count == 0)
+// Zero-arg: help when history is empty or the console cannot prompt (redirected stdin / non-interactive).
+// With history + an interactive terminal, the default command opens the MRU picker.
+if (prepared.Length == 0 && (RunHistory.List().Count == 0 || !CanPromptInteractively()))
     prepared = ["--help"];
 
 await app.RunAsync(prepared);
@@ -236,14 +237,33 @@ static int CleanArtifacts(string? input, bool all, string? missingInputMessage)
 }
 
 /// <summary>
+/// True when stdin is a real terminal that can drive Spectre prompts.
+/// Redirected/piped input falls through to help instead of the MRU picker.
+/// </summary>
+static bool CanPromptInteractively()
+{
+    try
+    {
+        if (Console.IsInputRedirected)
+            return false;
+
+        return AnsiConsole.Profile.Capabilities.Interactive;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+/// <summary>
 /// Interactive MRU picker over go.toml history, then optional app-args prompt.
-/// Returns null on empty history, cancel, or non-interactive console.
+/// Returns null on empty history, cancel, or if prompts cannot run (caller shows help for zero-arg).
 /// </summary>
 static string? TryPickFromHistory(out string[] appArgs)
 {
     appArgs = [];
     var history = RunHistory.List();
-    if (history.Count == 0)
+    if (history.Count == 0 || !CanPromptInteractively())
         return null;
 
     try
@@ -267,8 +287,7 @@ static string? TryPickFromHistory(out string[] appArgs)
     }
     catch (Exception)
     {
-        // Spectre throws when stdin is redirected / no interactive terminal.
-        ConsoleApp.LogError("Interactive selection requires a terminal.");
+        // Cancelled prompt or unexpected non-interactive environment — no error noise.
         return null;
     }
 }

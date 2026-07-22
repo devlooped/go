@@ -45,10 +45,11 @@ with smart up-to-date checks of every C# file used to build the app (including
 Every successful `go` / `go dev` invocation records the entry point (local full path or
 remote ref) in a shared history file next to the cache root (`dotnet/go/go.toml`).
 
-With at least one history entry, running with **no arguments** opens an interactive
-picker (searchable, ordered by use count then recency). After you pick an entry you
-can optionally type app arguments (quoted groups supported). With an empty history,
-`dnx go` with no args shows help instead.
+With at least one history entry, running with **no arguments** in an interactive
+terminal opens a searchable picker (ordered by use count then recency). After you
+pick an entry you can optionally type app arguments (quoted groups supported).
+With an empty history, or when stdin is redirected / non-interactive (CI, pipes),
+`dnx go` with no args shows help instead of erroring.
 
 Local paths that no longer exist are dropped from the picker; remote refs stay listed
 even when their download bundle is gone (the next run re-downloads as usual).
