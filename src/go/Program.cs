@@ -11,6 +11,7 @@ app.Add("", RunAsync);
 app.Add("dev", DevAsync);
 app.Add("clean", CleanAsync);
 app.Add("remove", RemoveAsync);
+app.Add("open", OpenAsync);
 app.Add<CheckCommands>();
 app.Add<CleanupCommands>();
 app.Add<SkillCommands>();
@@ -115,6 +116,37 @@ static int CleanAsync([Argument] string? input = null, bool all = false, [Hidden
         System.Diagnostics.Debugger.Launch();
 
     return CleanArtifacts(input, all, missingInputMessage: "Specify a .cs file or remote ref to clean, or --all to clean all cached apps.");
+}
+
+/// <summary>Opens a local file or the web URL for a remote ref in the default app/browser. When omitted, selects from previous runs (MRU).</summary>
+/// <param name="input">Path to an existing local file or remote ref (owner/repo[@ref][:path]). When omitted, selects from previous runs (MRU).</param>
+/// <param name="gdbg">Launch debugger before executing.</param>
+static int OpenAsync([Argument] string? input = null, [Hidden] bool gdbg = false)
+{
+    if (gdbg)
+        System.Diagnostics.Debugger.Launch();
+
+    if (string.IsNullOrWhiteSpace(input))
+    {
+        var picked = TryPickOpenFromHistory();
+        if (picked is null)
+            return 1;
+        input = picked;
+    }
+
+    if (!OpenTarget.TryResolve(input, out var target, out var error))
+    {
+        ConsoleApp.LogError(error!);
+        return 1;
+    }
+
+    if (!ShellOpen.TryOpen(target))
+    {
+        ConsoleApp.LogError($"Failed to open: {target}");
+        return 1;
+    }
+
+    return 0;
 }
 
 /// <summary>Cleans cached artifacts (same as clean) and removes the entry from MRU history.</summary>
@@ -288,6 +320,45 @@ static string? TryPickFromHistory(out string[] appArgs)
     catch (Exception)
     {
         // Cancelled prompt or unexpected non-interactive environment — no error noise.
+        return null;
+    }
+}
+
+/// <summary>
+/// Interactive MRU picker for <c>open</c> (no app-args prompt).
+/// Empty history / non-interactive: logs a clear error and returns null (no hang).
+/// </summary>
+static string? TryPickOpenFromHistory()
+{
+    var history = RunHistory.List();
+    if (history.Count == 0)
+    {
+        ConsoleApp.LogError("No previous runs to open. Specify a file or remote ref.");
+        return null;
+    }
+
+    if (!CanPromptInteractively())
+    {
+        ConsoleApp.LogError("No interactive terminal; specify a file or remote ref to open.");
+        return null;
+    }
+
+    try
+    {
+        var selected = AnsiConsole.Prompt(
+            new SelectionPrompt<RunHistoryEntry>()
+                .Title("Select an entry to open:")
+                .PageSize(15)
+                .EnableSearch()
+                .MoreChoicesText("[grey](Move up/down to reveal more; type to search)[/]")
+                .UseConverter(static e => e.Display)
+                .AddChoices(history));
+
+        return selected.Input;
+    }
+    catch (Exception)
+    {
+        // Cancelled prompt or unexpected non-interactive environment.
         return null;
     }
 }

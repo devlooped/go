@@ -114,6 +114,34 @@ public class GoArgsTests
     }
 
     [Fact]
+    public void PrepareCafArgs_passes_open_args_through_unchanged()
+    {
+        var caf = GoArgs.PrepareArgs(["open", "app.cs"]);
+
+        // open owns its args (same non-forwarding path as clean/remove); do not treat path as app-forward.
+        Assert.Equal(["open", "app.cs"], caf);
+        Assert.Empty(GoArgs.ForwardArgs);
+    }
+
+    [Fact]
+    public void PrepareCafArgs_passes_open_with_remote_ref_through_unchanged()
+    {
+        var caf = GoArgs.PrepareArgs(["open", "kzu/sandbox@main:program.cs"]);
+
+        Assert.Equal(["open", "kzu/sandbox@main:program.cs"], caf);
+        Assert.Empty(GoArgs.ForwardArgs);
+    }
+
+    [Fact]
+    public void PrepareCafArgs_passes_open_zero_arg_through_unchanged()
+    {
+        var caf = GoArgs.PrepareArgs(["open"]);
+
+        Assert.Equal(["open"], caf);
+        Assert.Empty(GoArgs.ForwardArgs);
+    }
+
+    [Fact]
     public void PrepareCafArgs_passes_help_through_unchanged()
     {
         var caf = GoArgs.PrepareArgs(["--help"]);
