@@ -1,5 +1,21 @@
 # Changelog
 
+## [v1.1.0](https://github.com/devlooped/go-sharp/tree/v1.1.0) (2026-07-22)
+
+[Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.1...v1.1.0)
+
+:sparkles: Implemented enhancements:
+
+- Add open command for local files, remote URLs, and MRU pick [\#41](https://github.com/devlooped/go-sharp/pull/41) (@kzu)
+- Always label gist MRU entries as owner/shortsha:file [\#40](https://github.com/devlooped/go-sharp/pull/40) (@kzu)
+- Improve MRU gist labels as owner/filename with collision refs [\#38](https://github.com/devlooped/go-sharp/pull/38) (@kzu)
+- Prune deleted local files from MRU history when listing [\#37](https://github.com/devlooped/go-sharp/pull/37) (@kzu)
+- Add MRU run history with interactive picker and remove command [\#34](https://github.com/devlooped/go-sharp/pull/34) (@kzu)
+
+:bug: Fixed bugs:
+
+- Fall back to help when MRU picker cannot run interactively [\#36](https://github.com/devlooped/go-sharp/pull/36) (@kzu)
+
 ## [v1.0.1](https://github.com/devlooped/go-sharp/tree/v1.0.1) (2026-07-10)
 
 [Full Changelog](https://github.com/devlooped/go-sharp/compare/v1.0.0...v1.0.1)
