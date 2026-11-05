@@ -35,7 +35,7 @@
   <ItemGroup>
     <PackageReference Include="ConsoleAppFramework" Version="5.7.13" PrivateAssets="all" />
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
-    <PackageReference Include="Tomlyn" Version="2.10.1" />
+    <PackageReference Include="Tomlyn" Version="2.10.2" />
   </ItemGroup>
 
   <ItemGroup>
